@@ -11,47 +11,39 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { ProtectedRoute } from '../lib/core/components/ProtectedRoute';
 import { AuditPriority } from '../lib/core/constants/database_constants';
 import { AssetService } from '../lib/core/services/asset_service';
 import { Asset } from '../lib/data/models/asset_model';
 
 export default function CreateAssetScreen() {
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState({
-        asset_code: '',
-        barcode: '',
-        tag_number: '',
-        description: '',
-        category_name: '',
-        sub_category_name: '',
-        brand: '',
-        model: '',
-        serial_number: '',
-        current_location_name: '',
-        expected_location_name: '',
-        current_department_name: '',
-        current_custodian_name: '',
-        current_custodian_email: '',
-        current_status_name: 'Active',
-        current_condition: 'Good',
-        asset_cost: '',
-        net_book_value: '',
-        purchase_date: '',
-        audit_priority: AuditPriority.NORMAL,
-    });
+    const [asset_code, setAssetCode] = useState('');
+
+    const [tag_number, setTagNumber] = useState('');
+    const [description, setDescription] = useState('');
+    const [category_name, setCategoryName] = useState('');
+    const [sub_category_name, setSubCategoryName] = useState('');
+    const [brand, setBrand] = useState('');
+    const [model, setModel] = useState('');
+    const [serial_number, setSerialNumber] = useState('');
+    const [current_location_name, setCurrentLocationName] = useState('');
+    const [expected_location_name, setExpectedLocationName] = useState('');
+    const [current_department_name, setCurrentDepartmentName] = useState('');
+    const [current_custodian_name, setCurrentCustodianName] = useState('');
+    const [current_custodian_email, setCurrentCustodianEmail] = useState('');
+    const [current_status_name, setCurrentStatusName] = useState('Active');
+    const [current_condition, setCurrentCondition] = useState('Good');
+    const [asset_cost, setAssetCost] = useState('');
+    const [net_book_value, setNetBookValue] = useState('');
+    const [purchase_date, setPurchaseDate] = useState('');
+    const [audit_priority, setAuditPriority] = useState(AuditPriority.NORMAL);
 
     const assetService = new AssetService();
 
-    const handleInputChange = (field: string, value: string) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
-    };
-
     const handleSave = async () => {
         // Validate required fields
-        if (!formData.asset_code.trim() || !formData.description.trim()) {
+        if (!asset_code.trim() || !description.trim()) {
             Alert.alert('Validation Error', 'Asset Code and Description are required fields.');
             return;
         }
@@ -61,31 +53,31 @@ export default function CreateAssetScreen() {
         try {
             // Create new asset
             const newAsset = new Asset({
-                audit_session_id: 1, // Default session
-                asset_id: Date.now(), // Generate unique ID
-                asset_code: formData.asset_code.trim(),
-                barcode: formData.barcode.trim() || undefined,
-                tag_number: formData.tag_number.trim() || undefined,
-                description: formData.description.trim(),
-                category_name: formData.category_name.trim() || undefined,
-                sub_category_name: formData.sub_category_name.trim() || undefined,
-                brand: formData.brand.trim() || undefined,
-                model: formData.model.trim() || undefined,
-                serial_number: formData.serial_number.trim() || undefined,
-                current_location_id: 1,
-                current_location_name: formData.current_location_name.trim() || undefined,
-                expected_location_id: 1,
-                expected_location_name: formData.expected_location_name.trim() || undefined,
-                current_department_name: formData.current_department_name.trim() || undefined,
-                current_custodian_name: formData.current_custodian_name.trim() || undefined,
-                current_custodian_email: formData.current_custodian_email.trim() || undefined,
-                current_status_name: formData.current_status_name,
-                current_condition: formData.current_condition,
-                asset_cost: formData.asset_cost ? parseFloat(formData.asset_cost) : undefined,
-                net_book_value: formData.net_book_value ? parseFloat(formData.net_book_value) : undefined,
-                purchase_date: formData.purchase_date.trim() || undefined,
-                assigned_team_id: 1,
-                audit_priority: formData.audit_priority,
+                audit_session_id: 'default-session', // Default session
+                asset_id: 'temp-asset-id', // Will be generated by database
+                asset_code: asset_code.trim(),
+
+                tag_number: tag_number.trim() || undefined,
+                description: description.trim(),
+                category_name: category_name.trim() || undefined,
+                sub_category_name: sub_category_name.trim() || undefined,
+                brand: brand.trim() || undefined,
+                model: model.trim() || undefined,
+                serial_number: serial_number.trim() || undefined,
+                current_location_id: 'default-location',
+                current_location_name: current_location_name.trim() || undefined,
+                expected_location_id: 'default-location',
+                expected_location_name: expected_location_name.trim() || undefined,
+                current_department_name: current_department_name.trim() || undefined,
+                current_custodian_name: current_custodian_name.trim() || undefined,
+                current_custodian_email: current_custodian_email.trim() || undefined,
+                current_status_name: current_status_name,
+                current_condition: current_condition,
+                asset_cost: asset_cost ? parseFloat(asset_cost) : undefined,
+                net_book_value: net_book_value ? parseFloat(net_book_value) : undefined,
+                purchase_date: purchase_date.trim() || undefined,
+                assigned_team_id: 'default-team',
+                audit_priority: audit_priority,
                 data_version: 1,
             });
 
@@ -97,37 +89,35 @@ export default function CreateAssetScreen() {
                     'Asset created successfully!',
                     [
                         {
-                            text: 'View Asset',
+                            text: 'Start Audit',
                             onPress: () => {
-                                router.push(`/asset-details?assetCode=${encodeURIComponent(formData.asset_code)}`);
+                                router.push(`/start-audit?assetCode=${encodeURIComponent(asset_code)}`);
                             }
                         },
                         {
                             text: 'Create Another',
                             onPress: () => {
                                 // Reset form
-                                setFormData({
-                                    asset_code: '',
-                                    barcode: '',
-                                    tag_number: '',
-                                    description: '',
-                                    category_name: '',
-                                    sub_category_name: '',
-                                    brand: '',
-                                    model: '',
-                                    serial_number: '',
-                                    current_location_name: '',
-                                    expected_location_name: '',
-                                    current_department_name: '',
-                                    current_custodian_name: '',
-                                    current_custodian_email: '',
-                                    current_status_name: 'Active',
-                                    current_condition: 'Good',
-                                    asset_cost: '',
-                                    net_book_value: '',
-                                    purchase_date: '',
-                                    audit_priority: AuditPriority.NORMAL,
-                                });
+                                setAssetCode('');
+                    
+                                setTagNumber('');
+                                setDescription('');
+                                setCategoryName('');
+                                setSubCategoryName('');
+                                setBrand('');
+                                setModel('');
+                                setSerialNumber('');
+                                setCurrentLocationName('');
+                                setExpectedLocationName('');
+                                setCurrentDepartmentName('');
+                                setCurrentCustodianName('');
+                                setCurrentCustodianEmail('');
+                                setCurrentStatusName('Active');
+                                setCurrentCondition('Good');
+                                setAssetCost('');
+                                setNetBookValue('');
+                                setPurchaseDate('');
+                                setAuditPriority(AuditPriority.NORMAL);
                             }
                         }
                     ]
@@ -147,304 +137,355 @@ export default function CreateAssetScreen() {
         router.back();
     };
 
-    const InputField = ({ 
-        label, 
-        value, 
-        onChangeText, 
-        placeholder, 
-        required = false,
-        keyboardType = 'default',
-        multiline = false 
-    }: {
-        label: string;
-        value: string;
-        onChangeText: (text: string) => void;
-        placeholder: string;
-        required?: boolean;
-        keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
-        multiline?: boolean;
-    }) => (
-        <View className="mb-4">
-            <Text className="text-gray-700 font-medium mb-2">
-                {label} {required && <Text className="text-red-500">*</Text>}
-            </Text>
-            <TextInput
-                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
-                value={value}
-                onChangeText={onChangeText}
-                placeholder={placeholder}
-                placeholderTextColor="#9CA3AF"
-                keyboardType={keyboardType}
-                multiline={multiline}
-                numberOfLines={multiline ? 3 : 1}
-            />
-        </View>
-    );
-
-    const SelectField = ({ 
-        label, 
-        value, 
-        onValueChange, 
-        options 
-    }: {
-        label: string;
-        value: string;
-        onValueChange: (value: string) => void;
-        options: { label: string; value: string }[];
-    }) => (
-        <View className="mb-4">
-            <Text className="text-gray-700 font-medium mb-2">{label}</Text>
-            <View className="bg-white border border-gray-300 rounded-lg">
-                {options.map((option) => (
-                    <TouchableOpacity
-                        key={option.value}
-                        className={`px-4 py-3 border-b border-gray-200 ${
-                            value === option.value ? 'bg-blue-50' : ''
-                        }`}
-                        onPress={() => onValueChange(option.value)}
-                    >
-                        <View className="flex-row items-center justify-between">
-                            <Text className={`${value === option.value ? 'text-blue-600' : 'text-gray-900'}`}>
-                                {option.label}
-                            </Text>
-                            {value === option.value && (
-                                <Ionicons name="checkmark" size={20} color="#2563EB" />
-                            )}
-                        </View>
-                    </TouchableOpacity>
-                ))}
-            </View>
-        </View>
-    );
-
     return (
-        <View className="flex-1 bg-gray-50">
-            <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-            
-            {/* Header */}
-            <LinearGradient
-                colors={['#3B82F6', '#1D4ED8']}
-                className="pt-12 pb-6 px-6"
-            >
-                <View className="flex-row items-center justify-between mb-4">
-                    <TouchableOpacity
-                        className="w-10 h-10 bg-white/20 rounded-full items-center justify-center"
-                        onPress={handleBack}
-                    >
-                        <Ionicons name="arrow-back" size={20} color="white" />
-                    </TouchableOpacity>
-                    <Text className="text-white text-lg font-semibold">Create New Asset</Text>
-                    <View className="w-10" />
-                </View>
-            </LinearGradient>
+        <ProtectedRoute>
+            <View className="flex-1 bg-gray-50">
+                <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+                
+                {/* Header */}
+                <LinearGradient
+                    colors={['#3B82F6', '#1D4ED8']}
+                    className="pt-12 pb-6 px-6"
+                >
+                    <View className="flex-row items-center justify-between mb-4">
+                        <TouchableOpacity
+                            className="w-10 h-10 bg-white/20 rounded-full items-center justify-center"
+                            onPress={handleBack}
+                        >
+                            <Ionicons name="arrow-back" size={20} color="white" />
+                        </TouchableOpacity>
+                        <Text className="text-white text-lg font-semibold">Create New Asset</Text>
+                        <View className="w-10" />
+                    </View>
+                </LinearGradient>
 
-            <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
-                {/* Basic Information */}
-                <View className="bg-white rounded-xl p-6 shadow-sm mb-6 mt-4">
-                    <Text className="text-lg font-semibold text-gray-900 mb-4">Basic Information</Text>
-                    
-                    <InputField
-                        label="Asset Code"
-                        value={formData.asset_code}
-                        onChangeText={(text) => handleInputChange('asset_code', text)}
-                        placeholder="Enter asset code (e.g., LAPTOP-001)"
-                        required
-                    />
-                    
-                    <InputField
-                        label="Barcode"
-                        value={formData.barcode}
-                        onChangeText={(text) => handleInputChange('barcode', text)}
-                        placeholder="Enter barcode (optional)"
-                    />
-                    
-                    <InputField
-                        label="Tag Number"
-                        value={formData.tag_number}
-                        onChangeText={(text) => handleInputChange('tag_number', text)}
-                        placeholder="Enter tag number (optional)"
-                    />
-                    
-                    <InputField
-                        label="Description"
-                        value={formData.description}
-                        onChangeText={(text) => handleInputChange('description', text)}
-                        placeholder="Enter asset description"
-                        required
-                        multiline
-                    />
-                </View>
+                <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
+                    {/* Basic Information */}
+                    <View className="bg-white rounded-xl p-6 shadow-sm mb-6 mt-4">
+                        <Text className="text-lg font-semibold text-gray-900 mb-4">Basic Information</Text>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">
+                                Asset Code <Text className="text-red-500">*</Text>
+                            </Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={asset_code}
+                                onChangeText={setAssetCode}
+                                placeholder="Enter asset code (e.g., LAPTOP-001)"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                        
 
-                {/* Hardware Details */}
-                <View className="bg-white rounded-xl p-6 shadow-sm mb-6">
-                    <Text className="text-lg font-semibold text-gray-900 mb-4">Hardware Details</Text>
-                    
-                    <InputField
-                        label="Category"
-                        value={formData.category_name}
-                        onChangeText={(text) => handleInputChange('category_name', text)}
-                        placeholder="e.g., Computers, Office Equipment"
-                    />
-                    
-                    <InputField
-                        label="Sub Category"
-                        value={formData.sub_category_name}
-                        onChangeText={(text) => handleInputChange('sub_category_name', text)}
-                        placeholder="e.g., Laptops, Printers"
-                    />
-                    
-                    <InputField
-                        label="Brand"
-                        value={formData.brand}
-                        onChangeText={(text) => handleInputChange('brand', text)}
-                        placeholder="e.g., Dell, HP, Canon"
-                    />
-                    
-                    <InputField
-                        label="Model"
-                        value={formData.model}
-                        onChangeText={(text) => handleInputChange('model', text)}
-                        placeholder="e.g., Latitude 5520"
-                    />
-                    
-                    <InputField
-                        label="Serial Number"
-                        value={formData.serial_number}
-                        onChangeText={(text) => handleInputChange('serial_number', text)}
-                        placeholder="Enter serial number"
-                    />
-                </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Tag Number</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={tag_number}
+                                onChangeText={setTagNumber}
+                                placeholder="Enter tag number (optional)"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">
+                                Description <Text className="text-red-500">*</Text>
+                            </Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={description}
+                                onChangeText={setDescription}
+                                placeholder="Enter asset description"
+                                multiline
+                                numberOfLines={3}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                    </View>
 
-                {/* Location & Custodian */}
-                <View className="bg-white rounded-xl p-6 shadow-sm mb-6">
-                    <Text className="text-lg font-semibold text-gray-900 mb-4">Location & Custodian</Text>
-                    
-                    <InputField
-                        label="Current Location"
-                        value={formData.current_location_name}
-                        onChangeText={(text) => handleInputChange('current_location_name', text)}
-                        placeholder="e.g., IT Department"
-                    />
-                    
-                    <InputField
-                        label="Expected Location"
-                        value={formData.expected_location_name}
-                        onChangeText={(text) => handleInputChange('expected_location_name', text)}
-                        placeholder="e.g., IT Department"
-                    />
-                    
-                    <InputField
-                        label="Department"
-                        value={formData.current_department_name}
-                        onChangeText={(text) => handleInputChange('current_department_name', text)}
-                        placeholder="e.g., Information Technology"
-                    />
-                    
-                    <InputField
-                        label="Custodian Name"
-                        value={formData.current_custodian_name}
-                        onChangeText={(text) => handleInputChange('current_custodian_name', text)}
-                        placeholder="Enter custodian name"
-                    />
-                    
-                    <InputField
-                        label="Custodian Email"
-                        value={formData.current_custodian_email}
-                        onChangeText={(text) => handleInputChange('current_custodian_email', text)}
-                        placeholder="Enter custodian email"
-                        keyboardType="email-address"
-                    />
-                </View>
+                    {/* Hardware Details */}
+                    <View className="bg-white rounded-xl p-6 shadow-sm mb-6">
+                        <Text className="text-lg font-semibold text-gray-900 mb-4">Hardware Details</Text>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Category</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={category_name}
+                                onChangeText={setCategoryName}
+                                placeholder="e.g., Computers, Office Equipment"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Sub Category</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={sub_category_name}
+                                onChangeText={setSubCategoryName}
+                                placeholder="e.g., Laptops, Printers"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Brand</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={brand}
+                                onChangeText={setBrand}
+                                placeholder="e.g., Dell, HP, Canon"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Model</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={model}
+                                onChangeText={setModel}
+                                placeholder="e.g., Latitude 5520"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Serial Number</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={serial_number}
+                                onChangeText={setSerialNumber}
+                                placeholder="Enter serial number"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                    </View>
 
-                {/* Status & Condition */}
-                <View className="bg-white rounded-xl p-6 shadow-sm mb-6">
-                    <Text className="text-lg font-semibold text-gray-900 mb-4">Status & Condition</Text>
-                    
-                    <SelectField
-                        label="Status"
-                        value={formData.current_status_name}
-                        onValueChange={(value) => handleInputChange('current_status_name', value)}
-                        options={[
-                            { label: 'Active', value: 'Active' },
-                            { label: 'Inactive', value: 'Inactive' },
-                            { label: 'Maintenance', value: 'Maintenance' },
-                            { label: 'Retired', value: 'Retired' },
-                        ]}
-                    />
-                    
-                    <SelectField
-                        label="Condition"
-                        value={formData.current_condition}
-                        onValueChange={(value) => handleInputChange('current_condition', value)}
-                        options={[
-                            { label: 'Excellent', value: 'Excellent' },
-                            { label: 'Good', value: 'Good' },
-                            { label: 'Fair', value: 'Fair' },
-                            { label: 'Poor', value: 'Poor' },
-                        ]}
-                    />
-                    
-                    <SelectField
-                        label="Audit Priority"
-                        value={formData.audit_priority}
-                        onValueChange={(value) => handleInputChange('audit_priority', value)}
-                        options={[
-                            { label: 'Low', value: AuditPriority.LOW },
-                            { label: 'Normal', value: AuditPriority.NORMAL },
-                            { label: 'High', value: AuditPriority.HIGH },
-                            { label: 'Critical', value: AuditPriority.CRITICAL },
-                        ]}
-                    />
-                </View>
+                    {/* Location & Custodian */}
+                    <View className="bg-white rounded-xl p-6 shadow-sm mb-6">
+                        <Text className="text-lg font-semibold text-gray-900 mb-4">Location & Custodian</Text>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Current Location</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={current_location_name}
+                                onChangeText={setCurrentLocationName}
+                                placeholder="e.g., IT Department"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Expected Location</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={expected_location_name}
+                                onChangeText={setExpectedLocationName}
+                                placeholder="e.g., IT Department"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Department</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={current_department_name}
+                                onChangeText={setCurrentDepartmentName}
+                                placeholder="e.g., Information Technology"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Custodian Name</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={current_custodian_name}
+                                onChangeText={setCurrentCustodianName}
+                                placeholder="Enter custodian name"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Custodian Email</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={current_custodian_email}
+                                onChangeText={setCurrentCustodianEmail}
+                                placeholder="Enter custodian email"
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                    </View>
 
-                {/* Financial Information */}
-                <View className="bg-white rounded-xl p-6 shadow-sm mb-6">
-                    <Text className="text-lg font-semibold text-gray-900 mb-4">Financial Information</Text>
-                    
-                    <InputField
-                        label="Asset Cost"
-                        value={formData.asset_cost}
-                        onChangeText={(text) => handleInputChange('asset_cost', text)}
-                        placeholder="Enter asset cost"
-                        keyboardType="numeric"
-                    />
-                    
-                    <InputField
-                        label="Net Book Value"
-                        value={formData.net_book_value}
-                        onChangeText={(text) => handleInputChange('net_book_value', text)}
-                        placeholder="Enter net book value"
-                        keyboardType="numeric"
-                    />
-                    
-                    <InputField
-                        label="Purchase Date"
-                        value={formData.purchase_date}
-                        onChangeText={(text) => handleInputChange('purchase_date', text)}
-                        placeholder="YYYY-MM-DD"
-                    />
-                </View>
+                    {/* Status & Condition */}
+                    <View className="bg-white rounded-xl p-6 shadow-sm mb-6">
+                        <Text className="text-lg font-semibold text-gray-900 mb-4">Status & Condition</Text>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Status</Text>
+                            <View className="bg-white border border-gray-300 rounded-lg">
+                                {['Active', 'Inactive', 'Maintenance', 'Retired'].map((status) => (
+                                    <TouchableOpacity
+                                        key={status}
+                                        className={`px-4 py-3 border-b border-gray-200 ${
+                                            current_status_name === status ? 'bg-blue-50' : ''
+                                        }`}
+                                        onPress={() => setCurrentStatusName(status)}
+                                    >
+                                        <View className="flex-row items-center justify-between">
+                                            <Text className={`${current_status_name === status ? 'text-blue-600' : 'text-gray-900'}`}>
+                                                {status}
+                                            </Text>
+                                            {current_status_name === status && (
+                                                <Ionicons name="checkmark" size={20} color="#2563EB" />
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Condition</Text>
+                            <View className="bg-white border border-gray-300 rounded-lg">
+                                {['Excellent', 'Good', 'Fair', 'Poor'].map((condition) => (
+                                    <TouchableOpacity
+                                        key={condition}
+                                        className={`px-4 py-3 border-b border-gray-200 ${
+                                            current_condition === condition ? 'bg-blue-50' : ''
+                                        }`}
+                                        onPress={() => setCurrentCondition(condition)}
+                                    >
+                                        <View className="flex-row items-center justify-between">
+                                            <Text className={`${current_condition === condition ? 'text-blue-600' : 'text-gray-900'}`}>
+                                                {condition}
+                                            </Text>
+                                            {current_condition === condition && (
+                                                <Ionicons name="checkmark" size={20} color="#2563EB" />
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Audit Priority</Text>
+                            <View className="bg-white border border-gray-300 rounded-lg">
+                                {[
+                                    { label: 'Low', value: AuditPriority.LOW },
+                                    { label: 'Normal', value: AuditPriority.NORMAL },
+                                    { label: 'High', value: AuditPriority.HIGH },
+                                    { label: 'Critical', value: AuditPriority.CRITICAL },
+                                ].map((option) => (
+                                    <TouchableOpacity
+                                        key={option.value}
+                                        className={`px-4 py-3 border-b border-gray-200 ${
+                                            audit_priority === option.value ? 'bg-blue-50' : ''
+                                        }`}
+                                        onPress={() => setAuditPriority(option.value)}
+                                    >
+                                        <View className="flex-row items-center justify-between">
+                                            <Text className={`${audit_priority === option.value ? 'text-blue-600' : 'text-gray-900'}`}>
+                                                {option.label}
+                                            </Text>
+                                            {audit_priority === option.value && (
+                                                <Ionicons name="checkmark" size={20} color="#2563EB" />
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                    </View>
 
-                {/* Action Buttons */}
-                <View className="flex-row space-x-4 mb-8">
-                    <TouchableOpacity
-                        className="flex-1 bg-gray-500 py-4 rounded-xl items-center"
-                        onPress={handleBack}
-                    >
-                        <Text className="text-white font-semibold text-lg">Cancel</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                        className={`flex-1 py-4 rounded-xl items-center ${loading ? 'bg-gray-400' : 'bg-blue-500'}`}
-                        onPress={handleSave}
-                        disabled={loading}
-                    >
-                        <Text className="text-white font-semibold text-lg">
-                            {loading ? 'Creating...' : 'Create Asset'}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
-        </View>
+                    {/* Financial Information */}
+                    <View className="bg-white rounded-xl p-6 shadow-sm mb-6">
+                        <Text className="text-lg font-semibold text-gray-900 mb-4">Financial Information</Text>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Asset Cost</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={asset_cost}
+                                onChangeText={setAssetCost}
+                                placeholder="Enter asset cost"
+                                keyboardType="numeric"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Net Book Value</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={net_book_value}
+                                onChangeText={setNetBookValue}
+                                placeholder="Enter net book value"
+                                keyboardType="numeric"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                        
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Purchase Date</Text>
+                            <TextInput
+                                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+                                value={purchase_date}
+                                onChangeText={setPurchaseDate}
+                                placeholder="YYYY-MM-DD"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                        </View>
+                    </View>
+
+                    {/* Action Buttons */}
+                    <View className="flex-row space-x-4 mb-8">
+                        <TouchableOpacity
+                            className="flex-1 bg-gray-500 py-4 rounded-xl items-center"
+                            onPress={handleBack}
+                        >
+                            <Text className="text-white font-semibold text-lg">Cancel</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity
+                            className={`flex-1 py-4 rounded-xl items-center ${loading ? 'bg-gray-400' : 'bg-blue-500'}`}
+                            onPress={handleSave}
+                            disabled={loading}
+                        >
+                            <Text className="text-white font-semibold text-lg">
+                                {loading ? 'Creating...' : 'Create Asset'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
+            </View>
+        </ProtectedRoute>
     );
 } 

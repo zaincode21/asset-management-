@@ -1,3 +1,5 @@
+import { ProtectedRoute } from '@/lib/core/components/ProtectedRoute';
+import { useAuth } from '@/lib/core/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -32,6 +34,7 @@ export default function SettingsScreen() {
     offlineMode: false,
     darkMode: false,
   });
+  const { logout } = useAuth();
 
   useEffect(() => {
     loadSettings();
@@ -95,7 +98,7 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
+              await logout();
               router.replace('/login');
             } catch (error) {
               console.error('Error during logout:', error);
@@ -158,7 +161,7 @@ export default function SettingsScreen() {
       subtitle: 'Manually sync with server',
       icon: 'refresh-outline',
       type: 'action',
-      onPress: () => router.push('/sync'),
+              onPress: () => Alert.alert('Sync', 'Sync functionality coming soon'),
     },
     {
       id: 'backup',
@@ -166,7 +169,7 @@ export default function SettingsScreen() {
       subtitle: 'Manage data backup',
       icon: 'cloud-download-outline',
       type: 'navigate',
-      onPress: () => router.push('/backup'),
+              onPress: () => Alert.alert('Backup', 'Backup functionality coming soon'),
     },
     {
       id: 'about',
@@ -174,7 +177,7 @@ export default function SettingsScreen() {
       subtitle: 'App version and information',
       icon: 'information-circle-outline',
       type: 'navigate',
-      onPress: () => router.push('/about'),
+              onPress: () => Alert.alert('About', 'Asset Management System v1.0.0'),
     },
     {
       id: 'help',
@@ -182,7 +185,7 @@ export default function SettingsScreen() {
       subtitle: 'Get help and contact support',
       icon: 'help-circle-outline',
       type: 'navigate',
-      onPress: () => router.push('/help'),
+              onPress: () => Alert.alert('Help', 'Help documentation coming soon'),
     },
   ];
 
@@ -227,101 +230,103 @@ export default function SettingsScreen() {
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-      
-      {/* Header */}
-      <LinearGradient
-        colors={['#3B82F6', '#1D4ED8']}
-        className="pt-12 pb-6 px-6"
-      >
-        <View className="flex-row items-center justify-between mb-4">
-          <TouchableOpacity
-            className="w-10 h-10 bg-white/20 rounded-full items-center justify-center"
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={20} color="white" />
-          </TouchableOpacity>
-          
-          <Text className="text-white text-xl font-bold">Settings</Text>
-          
-          <View className="w-10" />
-        </View>
-      </LinearGradient>
+    <ProtectedRoute>
+      <View className="flex-1 bg-gray-50">
+        <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+        
+        {/* Header */}
+        <LinearGradient
+          colors={['#3B82F6', '#1D4ED8']}
+          className="pt-12 pb-6 px-6"
+        >
+          <View className="flex-row items-center justify-between mb-4">
+            <TouchableOpacity
+              className="w-10 h-10 bg-white/20 rounded-full items-center justify-center"
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={20} color="white" />
+            </TouchableOpacity>
+            
+            <Text className="text-white text-xl font-bold">Settings</Text>
+            
+            <View className="w-10" />
+          </View>
+        </LinearGradient>
 
-      <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
-        {/* General Settings */}
-        <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">General</Text>
-          {settingsItems.slice(0, 5).map(renderSettingsItem)}
-        </View>
+        <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
+          {/* General Settings */}
+          <View className="mb-6">
+            <Text className="text-lg font-semibold text-gray-900 mb-4">General</Text>
+            {settingsItems.slice(0, 5).map(renderSettingsItem)}
+          </View>
 
-        {/* Data Management */}
-        <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">Data Management</Text>
-          {settingsItems.slice(5, 7).map(renderSettingsItem)}
-        </View>
+          {/* Data Management */}
+          <View className="mb-6">
+            <Text className="text-lg font-semibold text-gray-900 mb-4">Data Management</Text>
+            {settingsItems.slice(5, 7).map(renderSettingsItem)}
+          </View>
 
-        {/* Support */}
-        <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">Support</Text>
-          {settingsItems.slice(7, 9).map(renderSettingsItem)}
-        </View>
+          {/* Support */}
+          <View className="mb-6">
+            <Text className="text-lg font-semibold text-gray-900 mb-4">Support</Text>
+            {settingsItems.slice(7, 9).map(renderSettingsItem)}
+          </View>
 
-        {/* Danger Zone */}
-        <View className="mb-6">
-          <Text className="text-lg font-semibold text-red-600 mb-4">Danger Zone</Text>
-          
-          <TouchableOpacity
-            className="bg-white rounded-xl p-4 mb-3 active:opacity-80"
-            onPress={handleClearData}
-          >
-            <View className="flex-row items-center">
-              <View className="w-10 h-10 bg-red-100 rounded-lg items-center justify-center mr-4">
-                <Ionicons name="trash-outline" size={20} color="#EF4444" />
+          {/* Danger Zone */}
+          <View className="mb-6">
+            <Text className="text-lg font-semibold text-red-600 mb-4">Danger Zone</Text>
+            
+            <TouchableOpacity
+              className="bg-white rounded-xl p-4 mb-3 active:opacity-80"
+              onPress={handleClearData}
+            >
+              <View className="flex-row items-center">
+                <View className="w-10 h-10 bg-red-100 rounded-lg items-center justify-center mr-4">
+                  <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-lg font-semibold text-red-600 mb-1">Clear All Data</Text>
+                  <Text className="text-sm text-gray-600">Delete all local audit data</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
               </View>
-              <View className="flex-1">
-                <Text className="text-lg font-semibold text-red-600 mb-1">Clear All Data</Text>
-                <Text className="text-sm text-gray-600">Delete all local audit data</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            className="bg-white rounded-xl p-4 mb-3 active:opacity-80"
-            onPress={handleLogout}
-          >
-            <View className="flex-row items-center">
-              <View className="w-10 h-10 bg-red-100 rounded-lg items-center justify-center mr-4">
-                <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+            <TouchableOpacity
+              className="bg-white rounded-xl p-4 mb-3 active:opacity-80"
+              onPress={handleLogout}
+            >
+              <View className="flex-row items-center">
+                <View className="w-10 h-10 bg-red-100 rounded-lg items-center justify-center mr-4">
+                  <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-lg font-semibold text-red-600 mb-1">Logout</Text>
+                  <Text className="text-sm text-gray-600">Sign out of your account</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
               </View>
-              <View className="flex-1">
-                <Text className="text-lg font-semibold text-red-600 mb-1">Logout</Text>
-                <Text className="text-sm text-gray-600">Sign out of your account</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-            </View>
-          </TouchableOpacity>
-        </View>
+            </TouchableOpacity>
+          </View>
 
-        {/* App Info */}
-        <View className="mb-6">
-          <View className="bg-white rounded-xl p-4">
-            <View className="items-center">
-              <View className="w-16 h-16 bg-blue-100 rounded-xl items-center justify-center mb-3">
-                <Ionicons name="cube" size={32} color="#3B82F6" />
+          {/* App Info */}
+          <View className="mb-6">
+            <View className="bg-white rounded-xl p-4">
+              <View className="items-center">
+                <View className="w-16 h-16 bg-blue-100 rounded-xl items-center justify-center mb-3">
+                  <Ionicons name="cube" size={32} color="#3B82F6" />
+                </View>
+                <Text className="text-lg font-semibold text-gray-900 mb-1">Asset Management</Text>
+                <Text className="text-sm text-gray-600 mb-2">Professional Audit System</Text>
+                <Text className="text-xs text-gray-500">Version 1.0.0</Text>
               </View>
-              <Text className="text-lg font-semibold text-gray-900 mb-1">Asset Management</Text>
-              <Text className="text-sm text-gray-600 mb-2">Professional Audit System</Text>
-              <Text className="text-xs text-gray-500">Version 1.0.0</Text>
             </View>
           </View>
-        </View>
 
-        {/* Bottom spacing */}
-        <View className="h-6" />
-      </ScrollView>
-    </View>
+          {/* Bottom spacing */}
+          <View className="h-6" />
+        </ScrollView>
+      </View>
+    </ProtectedRoute>
   );
 } 

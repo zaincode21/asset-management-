@@ -1,10 +1,29 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DatabaseConstants } from '../../core/constants/database_constants';
+import { generateUUID } from '../utils/uuid';
 
 export interface DatabaseResult {
   success: boolean;
   data?: any;
   error?: string;
+}
+
+interface ParsedSQL {
+  operation: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'COUNT';
+  tableName: string;
+  fields?: string[];
+  whereConditions?: Array<{
+    field: string;
+    operator: string;
+    value: any;
+    paramIndex: number;
+  }>;
+  orderBy?: Array<{
+    field: string;
+    direction: 'ASC' | 'DESC';
+  }>;
+  limit?: number | null;
+  values?: string[];
 }
 
 export class DatabaseHelper {
@@ -42,116 +61,142 @@ export class DatabaseHelper {
         const initialized = await AsyncStorage.getItem(`${this.storagePrefix}initialized`);
         if (initialized) return;
 
-        // Sample asset data for testing
-        const sampleAssets = [
-            {
-                id: 1,
-                audit_session_id: 1,
-                asset_id: 1001,
-                asset_code: 'LAPTOP-001',
-                barcode: '123456789012',
-                tag_number: 'TAG-001',
-                description: 'Dell Latitude 5520 Laptop',
-                category_name: 'Computers',
-                sub_category_name: 'Laptops',
-                brand: 'Dell',
-                model: 'Latitude 5520',
-                serial_number: 'SN123456789',
-                current_location_id: 1,
-                current_location_name: 'IT Department',
-                expected_location_id: 1,
-                expected_location_name: 'IT Department',
-                current_department_name: 'Information Technology',
-                current_custodian_name: 'John Smith',
-                current_custodian_email: 'john.smith@company.com',
-                current_status_name: 'Active',
-                current_condition: 'Good',
-                asset_cost: 1200.00,
-                net_book_value: 800.00,
-                purchase_date: '2023-01-15',
-                assigned_team_id: 1,
-                audit_priority: 'NORMAL',
-                data_version: 1,
-                last_sync_date: '2024-01-15T10:30:00Z',
-                created_at: '2023-01-15T10:00:00Z',
-                updated_at: '2024-01-15T10:30:00Z'
-            },
-            {
-                id: 2,
-                audit_session_id: 1,
-                asset_id: 1002,
-                asset_code: 'MONITOR-001',
-                barcode: '987654321098',
-                tag_number: 'TAG-002',
-                description: 'HP 24-inch Monitor',
-                category_name: 'Computers',
-                sub_category_name: 'Monitors',
-                brand: 'HP',
-                model: '24-inch LED',
-                serial_number: 'SN987654321',
-                current_location_id: 2,
-                current_location_name: 'Marketing Department',
-                expected_location_id: 2,
-                expected_location_name: 'Marketing Department',
-                current_department_name: 'Marketing',
-                current_custodian_name: 'Jane Doe',
-                current_custodian_email: 'jane.doe@company.com',
-                current_status_name: 'Active',
-                current_condition: 'Excellent',
-                asset_cost: 300.00,
-                net_book_value: 250.00,
-                purchase_date: '2023-03-20',
-                assigned_team_id: 1,
-                audit_priority: 'NORMAL',
-                data_version: 1,
-                last_sync_date: '2024-01-15T10:30:00Z',
-                created_at: '2023-03-20T10:00:00Z',
-                updated_at: '2024-01-15T10:30:00Z'
-            },
-            {
-                id: 3,
-                audit_session_id: 1,
-                asset_id: 1003,
-                asset_code: 'PRINTER-001',
-                barcode: '456789123456',
-                tag_number: 'TAG-003',
-                description: 'Canon Laser Printer',
-                category_name: 'Office Equipment',
-                sub_category_name: 'Printers',
-                brand: 'Canon',
-                model: 'LaserJet Pro',
-                serial_number: 'SN456789123',
-                current_location_id: 3,
-                current_location_name: 'Finance Department',
-                expected_location_id: 3,
-                expected_location_name: 'Finance Department',
-                current_department_name: 'Finance',
-                current_custodian_name: 'Mike Johnson',
-                current_custodian_email: 'mike.johnson@company.com',
-                current_status_name: 'Active',
-                current_condition: 'Fair',
-                asset_cost: 500.00,
-                net_book_value: 300.00,
-                purchase_date: '2022-11-10',
-                assigned_team_id: 1,
-                audit_priority: 'HIGH',
-                data_version: 1,
-                last_sync_date: '2024-01-15T10:30:00Z',
-                created_at: '2022-11-10T10:00:00Z',
-                updated_at: '2024-01-15T10:30:00Z'
-            }
-        ];
+    // Generate 100 comprehensive mock assets with proper UUIDs
+        const generateAssets = () => {
+            const assets = [];
+            const departments = [
+        { id: generateUUID(), name: 'Information Technology', location: 'IT Department - Room 101', custodian: 'John Smith', email: 'john.smith@company.com' },
+        { id: generateUUID(), name: 'Marketing', location: 'Marketing Department - Room 205', custodian: 'Sarah Johnson', email: 'sarah.johnson@company.com' },
+        { id: generateUUID(), name: 'Design', location: 'Design Department - Room 301', custodian: 'Emily Chen', email: 'emily.chen@company.com' },
+        { id: generateUUID(), name: 'Finance', location: 'Finance Department - Room 401', custodian: 'Mike Johnson', email: 'mike.johnson@company.com' },
+        { id: generateUUID(), name: 'Human Resources', location: 'HR Department - Room 501', custodian: 'Lisa Brown', email: 'lisa.brown@company.com' },
+        { id: generateUUID(), name: 'Executive', location: 'CEO Office - Room 601', custodian: 'David Wilson', email: 'david.wilson@company.com' },
+        { id: generateUUID(), name: 'Sales', location: 'Sales Department - Room 701', custodian: 'Alex Rodriguez', email: 'alex.rodriguez@company.com' },
+        { id: generateUUID(), name: 'Operations', location: 'Operations Department - Room 801', custodian: 'Maria Garcia', email: 'maria.garcia@company.com' },
+        { id: generateUUID(), name: 'Legal', location: 'Legal Department - Room 901', custodian: 'James Thompson', email: 'james.thompson@company.com' },
+        { id: generateUUID(), name: 'Facilities', location: 'Facilities Department - Room 1001', custodian: 'Tom Davis', email: 'tom.davis@company.com' }
+            ];
 
-        // Initialize with sample data
-        await AsyncStorage.multiSet([
-            [`${this.storagePrefix}${DatabaseConstants.assetTable}`, JSON.stringify(sampleAssets)],
-            [`${this.storagePrefix}${DatabaseConstants.auditFindingTable}`, JSON.stringify([])],
-            [`${this.storagePrefix}${DatabaseConstants.syncQueueTable}`, JSON.stringify([])],
-            [`${this.storagePrefix}${DatabaseConstants.conflictTable}`, JSON.stringify([])],
-            [`${this.storagePrefix}${DatabaseConstants.newDiscoveryTable}`, JSON.stringify([])],
-            [`${this.storagePrefix}${DatabaseConstants.auditSessionTable}`, JSON.stringify([])],
-            [`${this.storagePrefix}initialized`, 'true'],
-        ]);
+            const assetTypes = [
+                // Laptops
+                { category: 'IT Equipment', subCategory: 'Laptops', prefix: 'LAPTOP', brands: ['Dell', 'HP', 'Apple', 'Lenovo'], models: ['Latitude 5520', 'EliteBook 840 G8', 'MacBook Pro 14-inch M2', 'ThinkPad X1 Carbon'], costRange: [800, 2500] },
+                // Monitors
+                { category: 'IT Equipment', subCategory: 'Monitors', prefix: 'MONITOR', brands: ['Dell', 'HP', 'Samsung', 'LG'], models: ['UltraSharp 27 4K', '24-inch LED', '32-inch Curved', '27-inch IPS'], costRange: [200, 800] },
+                // Printers
+                { category: 'Office Equipment', subCategory: 'Printers', prefix: 'PRINTER', brands: ['HP', 'Canon', 'Epson', 'Brother'], models: ['LaserJet Pro M404n', 'Color LaserJet Pro M479fdw', 'WorkForce Pro WF-3720', 'HL-L2350DW'], costRange: [300, 1200] },
+                // Desks
+                { category: 'Furniture', subCategory: 'Desks', prefix: 'DESK', brands: ['IKEA', 'Steelcase', 'Herman Miller', 'Haworth'], models: ['BEKANT Standing Desk', 'Think Desk', 'Aeron Desk', 'Zody Desk'], costRange: [400, 1500] },
+                // Chairs
+                { category: 'Furniture', subCategory: 'Chairs', prefix: 'CHAIR', brands: ['Herman Miller', 'Steelcase', 'Haworth', 'IKEA'], models: ['Aeron Chair', 'Leap Chair', 'Zody Chair', 'MARKUS Chair'], costRange: [300, 1200] },
+                // Network Equipment
+                { category: 'Network Equipment', subCategory: 'Switches', prefix: 'SWITCH', brands: ['Cisco', 'HP', 'Juniper', 'Dell'], models: ['Catalyst 2960', 'ProCurve 2920', 'EX2200', 'PowerConnect 5524'], costRange: [1500, 5000] },
+                // Mobile Devices
+                { category: 'Mobile Devices', subCategory: 'Smartphones', prefix: 'PHONE', brands: ['Apple', 'Samsung', 'Google', 'OnePlus'], models: ['iPhone 14 Pro', 'Galaxy S23', 'Pixel 7', 'OnePlus 11'], costRange: [600, 1200] },
+                // Tablets
+                { category: 'Mobile Devices', subCategory: 'Tablets', prefix: 'TABLET', brands: ['Apple', 'Samsung', 'Microsoft', 'Lenovo'], models: ['iPad Pro 12.9-inch', 'Galaxy Tab S9', 'Surface Pro 9', 'Yoga Tab 13'], costRange: [500, 1500] },
+                // Projectors
+                { category: 'Audio/Video Equipment', subCategory: 'Projectors', prefix: 'PROJECTOR', brands: ['Epson', 'BenQ', 'Optoma', 'ViewSonic'], models: ['PowerLite 1785W', 'TH685P', 'HD146X', 'PG800HD'], costRange: [400, 2000] },
+                // Servers
+                { category: 'IT Equipment', subCategory: 'Servers', prefix: 'SERVER', brands: ['Dell', 'HP', 'IBM', 'Cisco'], models: ['PowerEdge R740', 'ProLiant DL380', 'System x3650', 'UCS C220'], costRange: [3000, 15000] }
+            ];
+
+      const auditSessionId = generateUUID();
+      const teamId = generateUUID();
+
+            for (let i = 0; i < 100; i++) {
+                const assetType = assetTypes[i % assetTypes.length];
+                const department = departments[i % departments.length];
+                const brand = assetType.brands[i % assetType.brands.length];
+                const model = assetType.models[i % assetType.models.length];
+                const assetNumber = Math.floor(i / assetTypes.length) + 1;
+                
+                const assetCode = `${assetType.prefix}-${String(assetNumber).padStart(3, '0')}`;
+                const barcode = String(100000000000 + i).padStart(12, '0');
+                const tagNumber = `TAG-${String(i + 1).padStart(3, '0')}`;
+                const serialNumber = `SN${String(100000000 + i).padStart(9, '0')}`;
+                
+                const cost = Math.floor(Math.random() * (assetType.costRange[1] - assetType.costRange[0]) + assetType.costRange[0]);
+        
+        const asset = {
+          id: generateUUID(),
+          audit_session_id: auditSessionId,
+          asset_id: generateUUID(),
+                    asset_code: assetCode,
+                    barcode: barcode,
+                    tag_number: tagNumber,
+          description: `${brand} ${model} - ${assetType.subCategory}`,
+                    category_name: assetType.category,
+                    sub_category_name: assetType.subCategory,
+                    brand: brand,
+                    model: model,
+                    serial_number: serialNumber,
+          current_location_id: department.id,
+                    current_location_name: department.location,
+          expected_location_id: department.id,
+                    expected_location_name: department.location,
+                    current_department_name: department.name,
+                    current_custodian_name: department.custodian,
+                    current_custodian_email: department.email,
+                    current_status_name: 'Active',
+          current_condition: 'Good',
+                    asset_cost: cost,
+          net_book_value: Math.floor(cost * 0.8),
+          purchase_date: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          assigned_team_id: teamId,
+          audit_priority: ['LOW', 'NORMAL', 'HIGH', 'CRITICAL'][Math.floor(Math.random() * 4)],
+                    data_version: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        
+        assets.push(asset);
+            }
+
+            return assets;
+        };
+
+    // Generate mock audit sessions
+    const generateAuditSessions = () => {
+      return [
+        {
+          id: generateUUID(),
+          session_id: generateUUID(),
+          session_code: 'AUDIT-2024-001',
+          audit_name: 'Annual Asset Inventory 2024',
+          audit_type: 'Full Inventory',
+          start_date: new Date().toISOString(),
+          end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'In Progress',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+      ];
+    };
+
+    // Generate mock audit findings
+    const generateAuditFindings = () => {
+      return [];
+    };
+
+    try {
+      const assets = generateAssets();
+      const auditSessions = generateAuditSessions();
+      const auditFindings = generateAuditFindings();
+
+      await AsyncStorage.setItem(`${this.storagePrefix}${DatabaseConstants.assetTable}`, JSON.stringify(assets));
+      await AsyncStorage.setItem(`${this.storagePrefix}${DatabaseConstants.auditSessionTable}`, JSON.stringify(auditSessions));
+      await AsyncStorage.setItem(`${this.storagePrefix}${DatabaseConstants.auditFindingTable}`, JSON.stringify(auditFindings));
+      await AsyncStorage.setItem(`${this.storagePrefix}initialized`, 'true');
+
+      console.log('Database initialized with:', {
+        assets: assets.length,
+        auditSessions: auditSessions.length,
+        auditFindings: auditFindings.length
+      });
+    } catch (error) {
+      console.error('Error initializing database:', error);
+      throw error;
+    }
     }
 
   async query(sql: string, params: any[] = []): Promise<DatabaseResult> {
@@ -160,36 +205,42 @@ export class DatabaseHelper {
     }
 
     try {
-      // Parse SQL to determine which table to query
-      const tableName = this.extractTableName(sql);
-      if (!tableName) {
-        return { success: false, error: 'Could not determine table name from SQL' };
-      }
-
-      const data = await this.getTableData(tableName);
+      console.log('Query called with SQL:', sql, 'Params:', params);
       
-      // Simple filtering based on WHERE clause
+      // Parse SQL to determine operation and structure
+      const parsedSQL = this.parseSQL(sql);
+      console.log('Parsed SQL:', parsedSQL);
+      
+      if (!parsedSQL) {
+        return { success: false, error: 'Could not parse SQL statement' };
+      }
+
+      const data = await this.getTableData(parsedSQL.tableName);
+      console.log('Retrieved data for table', parsedSQL.tableName, ':', data.length, 'records');
+      
+      // Apply WHERE conditions
       let filteredData = data;
-      if (sql.toLowerCase().includes('where')) {
-        filteredData = this.applyWhereClause(data, sql, params);
+      if (parsedSQL.whereConditions && parsedSQL.whereConditions.length > 0) {
+        console.log('Applying WHERE conditions...');
+        filteredData = this.applyWhereConditions(data, parsedSQL.whereConditions, params);
+        console.log('After WHERE filtering:', filteredData.length, 'records');
       }
 
-      // Simple ordering
-      if (sql.toLowerCase().includes('order by')) {
-        filteredData = this.applyOrderBy(filteredData, sql);
+      // Apply ORDER BY
+      if (parsedSQL.orderBy && parsedSQL.orderBy.length > 0) {
+        filteredData = this.applyOrderBy(filteredData, parsedSQL.orderBy);
       }
 
-      // Simple limiting
-      if (sql.toLowerCase().includes('limit')) {
-        const limit = this.extractLimit(sql);
-        if (limit) {
-          filteredData = filteredData.slice(0, limit);
-        }
+      // Apply LIMIT
+      if (parsedSQL.limit) {
+        filteredData = filteredData.slice(0, parsedSQL.limit);
       }
 
       // Handle COUNT queries
-      if (sql.toLowerCase().includes('count(*)')) {
-        return { success: true, data: [{ count: filteredData.length }] };
+      if (parsedSQL.operation === 'COUNT') {
+        const result = { success: true, data: [{ count: filteredData.length }] };
+        console.log('COUNT query result:', result);
+        return result;
       }
 
       return { success: true, data: filteredData };
@@ -205,17 +256,17 @@ export class DatabaseHelper {
     }
 
     try {
-      const tableName = this.extractTableName(sql);
-      if (!tableName) {
-        return { success: false, error: 'Could not determine table name from SQL' };
+      const parsedSQL = this.parseSQL(sql);
+      if (!parsedSQL) {
+        return { success: false, error: 'Could not parse SQL statement' };
       }
 
-      if (sql.toLowerCase().includes('insert into')) {
-        return await this.handleInsert(tableName, sql, params);
-      } else if (sql.toLowerCase().includes('update')) {
-        return await this.handleUpdate(tableName, sql, params);
-      } else if (sql.toLowerCase().includes('delete from')) {
-        return await this.handleDelete(tableName, sql, params);
+      if (parsedSQL.operation === 'INSERT') {
+        return await this.handleInsert(parsedSQL, params);
+      } else if (parsedSQL.operation === 'UPDATE') {
+        return await this.handleUpdate(parsedSQL, params);
+      } else if (parsedSQL.operation === 'DELETE') {
+        return await this.handleDelete(parsedSQL, params);
       }
 
       return { success: true };
@@ -237,13 +288,28 @@ export class DatabaseHelper {
 
   async clearAllData(): Promise<DatabaseResult> {
     try {
+      console.log('Clearing all database data...');
       const keys = await AsyncStorage.getAllKeys();
       const assetKeys = keys.filter(key => key.startsWith(this.storagePrefix));
+      console.log('Found keys to remove:', assetKeys);
       await AsyncStorage.multiRemove(assetKeys);
-      await this.ensureDefaultData();
+      this.isInitialized = false;
+      console.log('Database cleared successfully');
       return { success: true };
     } catch (error) {
-      console.error('Clear data error:', error);
+      console.error('Error clearing database:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  async forceRegenerateData(): Promise<DatabaseResult> {
+    try {
+      await this.clearAllData();
+      await this.ensureDefaultData();
+      this.isInitialized = true;
+      return { success: true };
+    } catch (error) {
+      console.error('Error regenerating data:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -253,7 +319,6 @@ export class DatabaseHelper {
     this.isInitialized = false;
   }
 
-  // Helper methods
   private async getTableData(tableName: string): Promise<any[]> {
     const data = await AsyncStorage.getItem(`${this.storagePrefix}${tableName}`);
     return data ? JSON.parse(data) : [];
@@ -263,130 +328,324 @@ export class DatabaseHelper {
     await AsyncStorage.setItem(`${this.storagePrefix}${tableName}`, JSON.stringify(data));
   }
 
+  private parseSQL(sql: string): ParsedSQL | null {
+    try {
+      const upperSQL = sql.toUpperCase().trim();
+      
+      // Determine operation
+      let operation: ParsedSQL['operation'];
+      if (upperSQL.startsWith('SELECT')) {
+        if (upperSQL.includes('COUNT(*)')) {
+          operation = 'COUNT';
+        } else {
+          operation = 'SELECT';
+        }
+      } else if (upperSQL.startsWith('INSERT')) {
+        operation = 'INSERT';
+      } else if (upperSQL.startsWith('UPDATE')) {
+        operation = 'UPDATE';
+      } else if (upperSQL.startsWith('DELETE')) {
+        operation = 'DELETE';
+      } else {
+        return null;
+      }
+
+      // Extract table name
+      const tableName = this.extractTableName(sql);
+      if (!tableName) return null;
+
+      // Parse WHERE conditions
+      const whereConditions = this.parseWhereConditions(sql);
+
+      // Parse ORDER BY
+      const orderBy = this.parseOrderBy(sql);
+
+      // Parse LIMIT
+      const limit = this.extractLimit(sql);
+
+      // Parse fields for INSERT
+      const fields = operation === 'INSERT' ? this.parseInsertFields(sql) : undefined;
+      const values = operation === 'INSERT' ? this.parseInsertValues(sql) : undefined;
+
+      return {
+        operation,
+        tableName,
+        fields,
+        whereConditions,
+        orderBy,
+        limit,
+        values
+      };
+    } catch (error) {
+      console.error('Error parsing SQL:', error);
+      return null;
+    }
+  }
+
   private extractTableName(sql: string): string | null {
-    const insertMatch = sql.match(/insert into (\w+)/i);
-    if (insertMatch) return insertMatch[1];
+    const upperSQL = sql.toUpperCase();
+    
+    // Handle different SQL patterns
+    const patterns = [
+      /INSERT\s+INTO\s+(\w+)/i,
+      /UPDATE\s+(\w+)/i,
+      /DELETE\s+FROM\s+(\w+)/i,
+      /FROM\s+(\w+)/i
+    ];
 
-    const updateMatch = sql.match(/update (\w+)/i);
-    if (updateMatch) return updateMatch[1];
+    for (const pattern of patterns) {
+      const match = sql.match(pattern);
+      if (match) {
+        return match[1];
+      }
+    }
 
-    const deleteMatch = sql.match(/delete from (\w+)/i);
-    if (deleteMatch) return deleteMatch[1];
-
-    const selectMatch = sql.match(/from (\w+)/i);
-    if (selectMatch) return selectMatch[1];
-
+    console.log('Could not extract table name from SQL:', sql);
     return null;
   }
 
-  private applyWhereClause(data: any[], sql: string, params: any[]): any[] {
-    // Simple WHERE clause implementation
-    if (sql.toLowerCase().includes('sync_status = ?')) {
-      const status = params[0];
-      return data.filter(item => item.sync_status === status);
+  private parseWhereConditions(sql: string): Array<{
+    field: string;
+    operator: string;
+    value: any;
+    paramIndex: number;
+  }> {
+    const conditions: Array<{
+      field: string;
+      operator: string;
+      value: any;
+      paramIndex: number;
+    }> = [];
+
+    try {
+      // Extract WHERE clause
+      const whereMatch = sql.match(/WHERE\s+(.+?)(?:\s+ORDER\s+BY|\s+LIMIT|$)/i);
+      if (!whereMatch) return conditions;
+
+      const whereClause = whereMatch[1];
+      
+      // Split by AND/OR (simplified - assumes AND for now)
+      const conditionStrings = whereClause.split(/\s+AND\s+/i);
+      
+      conditionStrings.forEach((condition, index) => {
+        // Match field operator ? pattern
+        const fieldMatch = condition.match(/(\w+)\s*([=<>!]+)\s*\?/);
+        if (fieldMatch) {
+          conditions.push({
+            field: fieldMatch[1],
+            operator: fieldMatch[2],
+            value: null, // Will be filled with param value
+            paramIndex: index
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Error parsing WHERE conditions:', error);
     }
-    if (sql.toLowerCase().includes('asset_found = ?')) {
-      const found = params[0];
-      return data.filter(item => item.asset_found === found);
-    }
-    if (sql.toLowerCase().includes('audit_status = ?')) {
-      const status = params[0];
-      return data.filter(item => item.audit_status === status);
-    }
-    return data;
+
+    return conditions;
   }
 
-  private applyOrderBy(data: any[], sql: string): any[] {
-    if (sql.toLowerCase().includes('order by created_at desc')) {
-      return data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    }
-    if (sql.toLowerCase().includes('order by audit_priority desc')) {
-      return data.sort((a, b) => {
-        const priorityOrder: Record<string, number> = { 'CRITICAL': 4, 'HIGH': 3, 'NORMAL': 2, 'LOW': 1 };
-        return (priorityOrder[b.audit_priority as string] || 0) - (priorityOrder[a.audit_priority as string] || 0);
+  private parseOrderBy(sql: string): Array<{
+    field: string;
+    direction: 'ASC' | 'DESC';
+  }> {
+    const orderBy: Array<{
+      field: string;
+      direction: 'ASC' | 'DESC';
+    }> = [];
+
+    try {
+      const orderMatch = sql.match(/ORDER\s+BY\s+(.+?)(?:\s+LIMIT|$)/i);
+      if (!orderMatch) return orderBy;
+
+      const orderClause = orderMatch[1];
+      const orderParts = orderClause.split(',').map(part => part.trim());
+
+      orderParts.forEach(part => {
+        const fieldMatch = part.match(/(\w+)(?:\s+(ASC|DESC))?/i);
+        if (fieldMatch) {
+          orderBy.push({
+            field: fieldMatch[1],
+            direction: (fieldMatch[2]?.toUpperCase() as 'ASC' | 'DESC') || 'ASC'
+          });
+        }
       });
+    } catch (error) {
+      console.error('Error parsing ORDER BY:', error);
     }
-    return data;
+
+    return orderBy;
+  }
+
+  private parseInsertFields(sql: string): string[] {
+    try {
+      const fieldsMatch = sql.match(/INSERT\s+INTO\s+\w+\s*\(([^)]+)\)/i);
+      if (fieldsMatch) {
+        return fieldsMatch[1].split(',').map(field => field.trim());
+      }
+    } catch (error) {
+      console.error('Error parsing INSERT fields:', error);
+    }
+    return [];
+  }
+
+  private parseInsertValues(sql: string): string[] {
+    try {
+      const valuesMatch = sql.match(/VALUES\s*\(([^)]+)\)/i);
+      if (valuesMatch) {
+        return valuesMatch[1].split(',').map(value => value.trim());
+      }
+    } catch (error) {
+      console.error('Error parsing INSERT values:', error);
+    }
+    return [];
   }
 
   private extractLimit(sql: string): number | null {
-    const limitMatch = sql.match(/limit (\d+)/i);
+    const limitMatch = sql.match(/LIMIT\s+(\d+)/i);
     return limitMatch ? parseInt(limitMatch[1]) : null;
   }
 
-  private async handleInsert(tableName: string, sql: string, params: any[]): Promise<DatabaseResult> {
-    const data = await this.getTableData(tableName);
-    const newRecord = this.paramsToRecord(params, tableName);
-    newRecord.id = Date.now(); // Simple ID generation
+  private applyWhereConditions(data: any[], conditions: Array<{
+    field: string;
+    operator: string;
+    value: any;
+    paramIndex: number;
+  }>, params: any[]): any[] {
+    return data.filter(item => {
+      return conditions.every(condition => {
+        const paramValue = params[condition.paramIndex];
+        const itemValue = item[condition.field];
+        
+        switch (condition.operator) {
+          case '=':
+            return itemValue === paramValue;
+          case '!=':
+          case '<>':
+            return itemValue !== paramValue;
+          case '>':
+            return itemValue > paramValue;
+          case '>=':
+            return itemValue >= paramValue;
+          case '<':
+            return itemValue < paramValue;
+          case '<=':
+            return itemValue <= paramValue;
+          case 'LIKE':
+            return String(itemValue).toLowerCase().includes(String(paramValue).toLowerCase());
+          default:
+            return true;
+        }
+      });
+    });
+  }
+
+  private applyOrderBy(data: any[], orderBy: Array<{
+    field: string;
+    direction: 'ASC' | 'DESC';
+  }>): any[] {
+    return data.sort((a, b) => {
+      for (const order of orderBy) {
+        const aValue = a[order.field];
+        const bValue = b[order.field];
+        
+        if (aValue === bValue) continue;
+        
+        let comparison = 0;
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          comparison = aValue.localeCompare(bValue);
+        } else if (aValue instanceof Date && bValue instanceof Date) {
+          comparison = aValue.getTime() - bValue.getTime();
+        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+          comparison = aValue - bValue;
+        } else {
+          comparison = String(aValue).localeCompare(String(bValue));
+        }
+        
+        return order.direction === 'DESC' ? -comparison : comparison;
+      }
+      return 0;
+    });
+  }
+
+  private async handleInsert(parsedSQL: ParsedSQL, params: any[]): Promise<DatabaseResult> {
+    const data = await this.getTableData(parsedSQL.tableName);
+    const newRecord = this.paramsToRecord(parsedSQL, params);
+    
+    // Generate UUID for new records
+    if (!newRecord.id && !newRecord.asset_id && !newRecord.offline_record_id) {
+      newRecord.id = generateUUID();
+    }
+    
     newRecord.created_at = new Date().toISOString();
     newRecord.updated_at = new Date().toISOString();
     
     data.push(newRecord);
-    await this.setTableData(tableName, data);
+    await this.setTableData(parsedSQL.tableName, data);
     return { success: true, data: newRecord };
   }
 
-  private async handleUpdate(tableName: string, sql: string, params: any[]): Promise<DatabaseResult> {
-    const data = await this.getTableData(tableName);
+  private async handleUpdate(parsedSQL: ParsedSQL, params: any[]): Promise<DatabaseResult> {
+    const data = await this.getTableData(parsedSQL.tableName);
     
-    if (sql.toLowerCase().includes('where offline_record_id = ?')) {
-      const recordId = params[params.length - 1];
-      const recordIndex = data.findIndex(item => item.offline_record_id === recordId);
-      if (recordIndex !== -1) {
-        data[recordIndex] = { ...data[recordIndex], ...this.paramsToRecord(params.slice(0, -1), tableName) };
-        data[recordIndex].updated_at = new Date().toISOString();
-        await this.setTableData(tableName, data);
-      }
-    } else if (sql.toLowerCase().includes('where id = ?')) {
-      const recordId = params[params.length - 1];
-      const recordIndex = data.findIndex(item => item.id === recordId);
-      if (recordIndex !== -1) {
-        data[recordIndex] = { ...data[recordIndex], ...this.paramsToRecord(params.slice(0, -1), tableName) };
-        data[recordIndex].updated_at = new Date().toISOString();
-        await this.setTableData(tableName, data);
+    if (parsedSQL.whereConditions && parsedSQL.whereConditions.length > 0) {
+      // Find records matching WHERE conditions
+      const matchingRecords = this.applyWhereConditions(data, parsedSQL.whereConditions, params);
+      
+      if (matchingRecords.length > 0) {
+        // Update all matching records
+        const updatedData = data.map(item => {
+          if (matchingRecords.includes(item)) {
+            const updates = this.paramsToRecord(parsedSQL, params);
+            return { ...item, ...updates, updated_at: new Date().toISOString() };
+          }
+          return item;
+        });
+        
+        await this.setTableData(parsedSQL.tableName, updatedData);
       }
     }
     
     return { success: true };
   }
 
-  private async handleDelete(tableName: string, sql: string, params: any[]): Promise<DatabaseResult> {
-    const data = await this.getTableData(tableName);
+  private async handleDelete(parsedSQL: ParsedSQL, params: any[]): Promise<DatabaseResult> {
+    const data = await this.getTableData(parsedSQL.tableName);
     
-    if (sql.toLowerCase().includes('where id = ?')) {
-      const recordId = params[0];
-      const filteredData = data.filter(item => item.id !== recordId);
-      await this.setTableData(tableName, filteredData);
+    if (parsedSQL.whereConditions && parsedSQL.whereConditions.length > 0) {
+      // Find records matching WHERE conditions
+      const matchingRecords = this.applyWhereConditions(data, parsedSQL.whereConditions, params);
+      
+      if (matchingRecords.length > 0) {
+        // Remove matching records
+        const filteredData = data.filter(item => !matchingRecords.includes(item));
+        await this.setTableData(parsedSQL.tableName, filteredData);
+      }
     }
     
     return { success: true };
   }
 
-  private paramsToRecord(params: any[], tableName: string): any {
-    // This is a simplified implementation
-    // In a real app, you'd parse the SQL more carefully
+  private paramsToRecord(parsedSQL: ParsedSQL, params: any[]): any {
     const record: any = {};
     
-    // Map common fields based on table name
-    if (tableName === DatabaseConstants.assetTable) {
-      record.audit_session_id = params[0];
-      record.asset_id = params[1];
-      record.asset_code = params[2];
-      record.description = params[3];
-      // Add more fields as needed
-    } else if (tableName === DatabaseConstants.auditFindingTable) {
-      record.offline_record_id = params[0];
-      record.audit_session_id = params[1];
-      record.audited_by = params[2];
-      record.audited_date = params[3];
-      record.asset_found = params[4];
-      // Add more fields as needed
-    } else if (tableName === DatabaseConstants.auditSessionTable) {
-      record.session_id = params[0];
-      record.session_code = params[1];
-      record.audit_name = params[2];
-      record.audit_type = params[3];
-      // Add more fields as needed
+    if (parsedSQL.operation === 'INSERT' && parsedSQL.fields) {
+      // Map parameters to fields based on INSERT statement
+      parsedSQL.fields.forEach((field, index) => {
+        if (params[index] !== undefined) {
+          record[field] = params[index];
+        }
+      });
+    } else if (parsedSQL.operation === 'UPDATE') {
+      // For UPDATE, assume first N-1 params are values, last param is WHERE condition value
+      // This is a simplified approach - in a real implementation you'd need more sophisticated parsing
+      const updateFields = ['asset_code', 'description', 'current_location_name', 'current_condition'];
+      updateFields.forEach((field, index) => {
+        if (params[index] !== undefined) {
+          record[field] = params[index];
+        }
+      });
     }
     
     return record;

@@ -44,14 +44,7 @@ export class ApiClient {
     }
   }
 
-  private async setAuthToken(token: string): Promise<void> {
-    this.authToken = token;
-    try {
-      await AsyncStorage.setItem('auth_token', token);
-    } catch (error) {
-      console.error('Error setting auth token:', error);
-    }
-  }
+
 
   private async getDeviceId(): Promise<string> {
     try {
@@ -89,7 +82,6 @@ export class ApiClient {
     const requestConfig: RequestInit = {
       method,
       headers,
-      timeout: this.timeout,
     };
 
     if (data && method !== 'GET') {
@@ -254,6 +246,10 @@ export class ApiClient {
 
   setAuthToken(token: string): void {
     this.authToken = token;
+    // Also save to AsyncStorage
+    AsyncStorage.setItem('auth_token', token).catch(error => {
+      console.error('Error saving auth token:', error);
+    });
   }
 
   clearAuthToken(): void {

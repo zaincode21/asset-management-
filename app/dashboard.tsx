@@ -9,48 +9,16 @@ import {
     StatusBar,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
+import { ProtectedRoute } from '../lib/core/components/ProtectedRoute';
+import { DatabaseConstants } from '../lib/core/constants/database_constants';
+import { DatabaseHelper } from '../lib/core/database/database_helper';
+import { AssetService } from '../lib/core/services/asset_service';
+import { AuditService } from '../lib/core/services/audit_service';
+import { SimpleAuditService } from '../lib/core/services/simple_audit_service';
+import { Asset } from '../lib/data/models/asset_model';
 
-// Mock data for demonstration
-const mockAuditSessions = [
-    {
-        session_id: 1,
-        session_code: 'AUDIT-2024-001',
-        audit_name: 'Q1 Asset Verification',
-        audit_type: 'COMPREHENSIVE',
-        audit_status: 'IN_PROGRESS',
-        total_assets_assigned: 150,
-        assets_audited: 87,
-        team_name: 'Audit Team Alpha',
-        created_at: '2024-01-15T10:00:00Z',
-        updated_at: '2024-01-20T14:30:00Z',
-    },
-    {
-        session_id: 2,
-        session_code: 'AUDIT-2024-002',
-        audit_name: 'IT Equipment Audit',
-        audit_type: 'SPECIFIC',
-        audit_status: 'PLANNED',
-        total_assets_assigned: 75,
-        assets_audited: 0,
-        team_name: 'IT Audit Team',
-        created_at: '2024-01-18T09:00:00Z',
-        updated_at: '2024-01-18T09:00:00Z',
-    },
-    {
-        session_id: 3,
-        session_code: 'AUDIT-2024-003',
-        audit_name: 'Office Furniture Audit',
-        audit_type: 'COMPREHENSIVE',
-        audit_status: 'COMPLETED',
-        total_assets_assigned: 200,
-        assets_audited: 200,
-        team_name: 'Facilities Team',
-        created_at: '2024-01-10T08:00:00Z',
-        updated_at: '2024-01-25T16:00:00Z',
-    },
-];
 
 const mockAssets = [
     {
@@ -93,51 +61,134 @@ const isTablet = width > 768;
 const isLargeTablet = width > 1024;
 
 export default function DashboardScreen() {
-    const [auditSessions, setAuditSessions] = useState(mockAuditSessions);
-    const [assets, setAssets] = useState(mockAssets);
-    const [loading, setLoading] = useState(false);
-    const [stats, setStats] = useState({
-        totalAssets: 425,
-        auditedAssets: 287,
-        pendingAssets: 138,
-        completedSessions: 1,
-        activeSessions: 2,
+
+    const [assets, setAssets] = useState<Asset[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const [auditStats, setAuditStats] = useState({
+        totalAudits: 0,
+        completedAudits: 0,
+        pendingAudits: 0,
+        todayAudits: 0,
+        completionRate: 0,
     });
+    const [assetCount, setAssetCount] = useState(0);
+
+    // Create services outside useEffect to prevent recreation
+    const assetService = new AssetService();
+    const auditService = new AuditService();
+    const simpleAuditService = new SimpleAuditService();
 
     useEffect(() => {
-        // Simulate loading
-        setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-        }, 1000);
-    }, []);
+        console.log('Dashboard useEffect triggered');
+        
+        const initializeApp = async () => {
+            try {
+                console.log('Starting database initialization...');
+                
+                // Initialize database
+                const dbHelper = DatabaseHelper.getInstance();
+                const dbResult = await dbHelper.initialize();
+                
+                if (!dbResult.success) {
+                    console.error('Database initialization failed:', dbResult.error);
+                    Alert.alert('Error', 'Failed to initialize database');
+                    setLoading(false);
+                    return;
+                }
+
+                console.log('Database initialized successfully');
+
+                // Load real data from database
+                const assetsResult = await assetService.getAllAssets();
+                
+                if (assetsResult.success && assetsResult.assets) {
+                    console.log('Loaded assets:', assetsResult.assets.length);
+                    setAssets(assetsResult.assets.slice(0, 3)); // Show first 3 assets
+                    setAssetCount(assetsResult.assets.length);
+                }
+
+                // Load audit statistics using simple audit service
+                const auditStatsResult = await simpleAuditService.getAuditStatistics();
+                if (auditStatsResult.success && auditStatsResult.data) {
+                    console.log('Loaded simple audit statistics:', auditStatsResult.data);
+                    // Convert to the format expected by the UI
+                    setAuditStats({
+                        totalAudits: auditStatsResult.data.totalAssets,
+                        completedAudits: auditStatsResult.data.auditedAssets,
+                        pendingAudits: auditStatsResult.data.pendingAssets,
+                        todayAudits: 0, // Not tracked in simple service
+                        completionRate: auditStatsResult.data.completionRate
+                    });
+                }
+
+                console.log('Setting loading to false');
+                setLoading(false);
+            } catch (error) {
+                console.error('Error initializing app:', error);
+                setLoading(false);
+            }
+        };
+
+        initializeApp();
+    }, []); // Empty dependency array to run only once
 
     const handleStartNewAudit = () => {
-        Alert.alert('New Audit', 'This would open the audit creation screen');
+        router.push('/start-audit');
     };
 
-    const handleViewAssets = () => {
-        Alert.alert('View Assets', 'This would open the assets list screen');
-    };
 
-    const handleViewSessions = () => {
-        Alert.alert('View Sessions', 'This would open the audit sessions screen');
-    };
+
+
 
     const handleSyncData = () => {
         Alert.alert('Sync Data', 'This would sync data with the server');
     };
 
-    const handleScanBarcode = () => {
-        router.push('/barcode-scanner');
-    };
 
-    const handleCreateAsset = () => {
-        router.push('/create-asset');
-    };
 
     const handleSettings = () => {
         router.push('/settings');
+    };
+
+    const handleForceRegenerateData = async () => {
+        try {
+            setLoading(true);
+            console.log('Force regenerating database data...');
+            
+            const dbHelper = DatabaseHelper.getInstance();
+            const result = await dbHelper.forceRegenerateData();
+            
+            if (result.success) {
+                // Reload assets after regeneration
+                const assetsResult = await assetService.getAllAssets();
+                if (assetsResult.success && assetsResult.assets) {
+                    console.log('Reloaded assets after regeneration:', assetsResult.assets.length);
+                    setAssets(assetsResult.assets.slice(0, 3));
+                    setAssetCount(assetsResult.assets.length);
+
+                    // Refresh audit statistics
+                    const auditStatsResult = await auditService.getAuditStatistics();
+                    if (auditStatsResult.success && auditStatsResult.data) {
+                        console.log('Refreshed audit statistics:', auditStatsResult.data);
+                        setAuditStats(auditStatsResult.data);
+                    }
+                }
+                
+                Alert.alert('Success', 'Database regenerated successfully!');
+            } else {
+                Alert.alert('Error', 'Failed to regenerate database data');
+            }
+        } catch (error) {
+            console.error('Error regenerating data:', error);
+            Alert.alert('Error', 'Failed to regenerate database data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleViewAllAssets = () => {
+        router.push('/all-assets');
     };
 
     const StatCard = ({ title, value, icon, color, onPress }: {
@@ -189,64 +240,7 @@ export default function DashboardScreen() {
         </TouchableOpacity>
     );
 
-    const AuditSessionCard = ({ session }: { session: any }) => {
-        const completionPercentage = session.total_assets_assigned > 0 
-            ? (session.assets_audited / session.total_assets_assigned) * 100 
-            : 0;
 
-        const getStatusColor = (status: string) => {
-            switch (status) {
-                case 'PLANNED': return '#6B7280';
-                case 'IN_PROGRESS': return '#3B82F6';
-                case 'COMPLETED': return '#10B981';
-                case 'CANCELLED': return '#EF4444';
-                default: return '#6B7280';
-            }
-        };
-
-        const getStatusText = (status: string) => {
-            switch (status) {
-                case 'PLANNED': return 'Planned';
-                case 'IN_PROGRESS': return 'In Progress';
-                case 'COMPLETED': return 'Completed';
-                case 'CANCELLED': return 'Cancelled';
-                default: return 'Unknown';
-            }
-        };
-
-        return (
-            <TouchableOpacity
-                className="bg-white rounded-xl p-4 shadow-sm active:opacity-80 mb-3"
-                onPress={() => Alert.alert('Session Details', `Opening session: ${session.audit_name}`)}
-            >
-                <View className="flex-row items-center justify-between mb-3">
-                    <View className="flex-1">
-                        <Text className="text-lg font-semibold text-gray-900 mb-1">{session.audit_name}</Text>
-                        <Text className="text-sm text-gray-600">{session.session_code}</Text>
-                    </View>
-                    <View className={`px-3 py-1 rounded-full`} style={{ backgroundColor: `${getStatusColor(session.audit_status)}20` }}>
-                        <Text className="text-xs font-medium" style={{ color: getStatusColor(session.audit_status) }}>
-                            {getStatusText(session.audit_status)}
-                        </Text>
-                    </View>
-                </View>
-                
-                <View className="flex-row items-center justify-between mb-3">
-                    <Text className="text-sm text-gray-600">{session.assets_audited} of {session.total_assets_assigned} assets audited</Text>
-                    <Text className="text-sm font-semibold text-gray-900">
-                        {completionPercentage.toFixed(1)}%
-                    </Text>
-                </View>
-                
-                <View className="w-full bg-gray-200 rounded-full h-2">
-                    <View 
-                        className="bg-blue-500 h-2 rounded-full" 
-                        style={{ width: `${Math.min(completionPercentage, 100)}%` }}
-                    />
-                </View>
-            </TouchableOpacity>
-        );
-    };
 
     if (loading) {
         return (
@@ -260,153 +254,279 @@ export default function DashboardScreen() {
     }
 
     return (
-        <View className="flex-1 bg-gray-50">
-            <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-            
-            {/* Header */}
-            <LinearGradient
-                colors={['#3B82F6', '#1D4ED8']}
-                className="pt-12 pb-6 px-6"
-            >
-                <View className="flex-row items-center justify-between mb-4">
-                    <View>
-                        <Text className="text-white text-2xl font-bold">Asset Management</Text>
-                        <Text className="text-blue-100 text-sm">Professional Audit Dashboard</Text>
+        <ProtectedRoute>
+            <View className="flex-1 bg-gray-50">
+                <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+                
+                {/* Header */}
+                <LinearGradient
+                    colors={['#3B82F6', '#1D4ED8']}
+                    className="pt-12 pb-6 px-6"
+                >
+                    <View className="flex-row items-center justify-between mb-4">
+                        <View>
+                            <Text className="text-white text-2xl font-bold">Asset Management</Text>
+                            <Text className="text-blue-100 text-sm">Professional Audit Dashboard</Text>
+                            <Text className="text-blue-100 text-sm mt-1">Total Assets: {assetCount}</Text>
+                        </View>
+                        <TouchableOpacity
+                            className="w-10 h-10 bg-white/20 rounded-full items-center justify-center"
+                            onPress={handleSettings}
+                        >
+                            <Ionicons name="settings-outline" size={20} color="white" />
+                        </TouchableOpacity>
                     </View>
-                    <TouchableOpacity
-                        className="w-10 h-10 bg-white/20 rounded-full items-center justify-center"
-                        onPress={handleSettings}
-                    >
-                        <Ionicons name="settings-outline" size={20} color="white" />
-                    </TouchableOpacity>
-                </View>
-            </LinearGradient>
+                </LinearGradient>
 
-            <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
-                {/* Stats Grid */}
-                <View className="mb-6">
-                    <Text className="text-lg font-semibold text-gray-900 mb-4">Overview</Text>
-                    <View className="flex-row gap-3">
-                        <StatCard
-                            title="Total Assets"
-                            value={stats.totalAssets}
-                            icon="cube-outline"
-                            color="#3B82F6"
-                            onPress={handleViewAssets}
-                        />
-                        <StatCard
-                            title="Audited"
-                            value={stats.auditedAssets}
-                            icon="checkmark-circle-outline"
-                            color="#10B981"
-                        />
-                    </View>
-                    <View className="flex-row gap-3 mt-3">
-                        <StatCard
-                            title="Pending"
-                            value={stats.pendingAssets}
-                            icon="time-outline"
-                            color="#F59E0B"
-                        />
-                        <StatCard
-                            title="Active Sessions"
-                            value={stats.activeSessions}
-                            icon="play-circle-outline"
-                            color="#EF4444"
-                            onPress={handleViewSessions}
-                        />
-                    </View>
-                </View>
+                <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
 
-                {/* Quick Actions */}
-                <View className="mb-6">
-                    <Text className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</Text>
-                    <View className="space-y-3">
-                        <QuickActionCard
-                            title="Start New Audit"
-                            subtitle="Create a new audit session"
-                            icon="add-circle-outline"
-                            color="#3B82F6"
-                            onPress={handleStartNewAudit}
-                        />
-                        <QuickActionCard
-                            title="Scan Barcode"
-                            subtitle="Scan asset barcode or QR code"
-                            icon="scan-outline"
-                            color="#10B981"
-                            onPress={handleScanBarcode}
-                        />
-                        <QuickActionCard
-                            title="Create Asset"
-                            subtitle="Add a new asset to inventory"
-                            icon="add-circle-outline"
-                            color="#8B5CF6"
-                            onPress={handleCreateAsset}
-                        />
-                        <QuickActionCard
-                            title="Sync Data"
-                            subtitle="Sync with server"
-                            icon="cloud-upload-outline"
-                            color="#F59E0B"
-                            onPress={handleSyncData}
-                        />
-                    </View>
-                </View>
 
-                {/* Recent Audit Sessions */}
-                {auditSessions.length > 0 && (
+                    {/* Audit Progress */}
                     <View className="mb-6">
                         <View className="flex-row items-center justify-between mb-4">
-                            <Text className="text-lg font-semibold text-gray-900">Recent Sessions</Text>
-                            <TouchableOpacity onPress={handleViewSessions}>
-                                <Text className="text-blue-600 text-sm font-medium">View All</Text>
-                            </TouchableOpacity>
+                            <Text className="text-lg font-semibold text-gray-900">Audit Progress</Text>
+                            <View className="flex-row items-center">
+                                <View className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                                <Text className="text-sm text-gray-500">{auditStats.completionRate}% Complete</Text>
+                            </View>
                         </View>
-                        {auditSessions.map((session) => (
-                            <AuditSessionCard key={session.session_id} session={session} />
-                        ))}
+                        <View className="flex-row gap-3">
+                            <StatCard
+                                title="Total Audits"
+                                value={auditStats.totalAudits}
+                                icon="document-text-outline"
+                                color="#6366F1"
+                            />
+                            <StatCard
+                                title="Completed"
+                                value={auditStats.completedAudits}
+                                icon="checkmark-done-circle-outline"
+                                color="#10B981"
+                            />
+                        </View>
+                        
+                        <View className="flex-row gap-3 mt-3">
+                            <StatCard
+                                title="Today"
+                                value={auditStats.todayAudits}
+                                icon="today-outline"
+                                color="#F59E0B"
+                            />
+                            <StatCard
+                                title="Pending"
+                                value={auditStats.pendingAudits}
+                                icon="time-outline"
+                                color="#8B5CF6"
+                            />
+                        </View>
                     </View>
-                )}
 
-                {/* Recent Assets */}
-                {assets.length > 0 && (
+                    {/* Quick Actions */}
                     <View className="mb-6">
-                        <View className="flex-row items-center justify-between mb-4">
-                            <Text className="text-lg font-semibold text-gray-900">Recent Assets</Text>
-                            <TouchableOpacity onPress={handleViewAssets}>
-                                <Text className="text-blue-600 text-sm font-medium">View All</Text>
-                            </TouchableOpacity>
+                        <Text className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</Text>
+                        <View className="space-y-3">
+                            <QuickActionCard
+                                title="Start New Audit"
+                                subtitle="Create a new audit session"
+                                icon="add-circle-outline"
+                                color="#3B82F6"
+                                onPress={handleStartNewAudit}
+                            />
+
+                            <QuickActionCard
+                                title="Sync Data"
+                                subtitle="Sync with server"
+                                icon="cloud-upload-outline"
+                                color="#F59E0B"
+                                onPress={handleSyncData}
+                            />
+                            <QuickActionCard
+                                title="Regenerate Data"
+                                subtitle="Force regenerate 100 assets"
+                                icon="refresh-outline"
+                                color="#EF4444"
+                                onPress={handleForceRegenerateData}
+                            />
+                            <QuickActionCard
+                                title="View All Assets"
+                                subtitle="Browse all assets"
+                                icon="list-outline"
+                                color="#6366F1"
+                                onPress={handleViewAllAssets}
+                            />
+                            <QuickActionCard
+                                title="Debug Audits"
+                                subtitle="Show current audit findings"
+                                icon="bug-outline"
+                                color="#EF4444"
+                                onPress={async () => {
+                                    try {
+                                        const dbHelper = DatabaseHelper.getInstance();
+                                        const auditFindingsResult = await dbHelper.query(
+                                            `SELECT * FROM ${DatabaseConstants.auditFindingTable}`
+                                        );
+                                        const assetsResult = await dbHelper.query(
+                                            `SELECT * FROM ${DatabaseConstants.assetTable}`
+                                        );
+                                        
+                                        if (auditFindingsResult.success && assetsResult.success) {
+                                            const auditFindings = auditFindingsResult.data || [];
+                                            const assets = assetsResult.data || [];
+                                            
+                                            console.log('=== DEBUG AUDIT FINDINGS ===');
+                                            console.log('Total Assets:', assets.length);
+                                            console.log('Total Audit Findings:', auditFindings.length);
+                                            
+                                            if (auditFindings.length > 0) {
+                                                console.log('Audit Findings:', auditFindings);
+                                                console.log('Asset IDs in audits:', auditFindings.map((a: any) => a.asset_id));
+                                                console.log('Asset Codes in audits:', auditFindings.map((a: any) => a.physical_asset_code));
+                                                
+                                                // Check for duplicates
+                                                const assetIds = auditFindings.map((a: any) => a.asset_id).filter((id: any) => id != null);
+                                                const uniqueAssetIds = [...new Set(assetIds)];
+                                                console.log('Unique asset IDs:', uniqueAssetIds.length, 'vs Total audit findings:', auditFindings.length);
+                                                
+                                                if (uniqueAssetIds.length !== auditFindings.length) {
+                                                    console.log('❌ DUPLICATES FOUND!');
+                                                } else {
+                                                    console.log('✅ No duplicates found');
+                                                }
+                                            }
+                                            
+                                            Alert.alert(
+                                                'Debug Info',
+                                                `Assets: ${assets.length}\nAudit Findings: ${auditFindings.length}\nCheck console for details.`
+                                            );
+                                        }
+                                    } catch (error) {
+                                        console.error('Debug error:', error);
+                                        Alert.alert('Error', 'Failed to get debug info');
+                                    }
+                                }}
+                            />
+                            <QuickActionCard
+                                title="Clear Audits"
+                                subtitle="Remove all audit findings"
+                                icon="trash-outline"
+                                color="#EF4444"
+                                onPress={async () => {
+                                    try {
+                                        const result = await simpleAuditService.clearAllAudits();
+                                        
+                                        if (result.success) {
+                                            // Refresh audit statistics
+                                            const auditStatsResult = await simpleAuditService.getAuditStatistics();
+                                            if (auditStatsResult.success && auditStatsResult.data) {
+                                                setAuditStats({
+                                                    totalAudits: auditStatsResult.data.totalAssets,
+                                                    completedAudits: auditStatsResult.data.auditedAssets,
+                                                    pendingAudits: auditStatsResult.data.pendingAssets,
+                                                    todayAudits: 0,
+                                                    completionRate: auditStatsResult.data.completionRate
+                                                });
+                                            }
+                                            
+                                            Alert.alert('Success', 'All audit findings cleared!');
+                                        } else {
+                                            Alert.alert('Error', result.error || 'Failed to clear audit findings');
+                                        }
+                                    } catch (error) {
+                                        console.error('Clear audits error:', error);
+                                        Alert.alert('Error', 'Failed to clear audit findings');
+                                    }
+                                }}
+                            />
+                            <QuickActionCard
+                                title="Test Single Audit"
+                                subtitle="Create a test audit for LAPTOP-001"
+                                icon="flask-outline"
+                                color="#10B981"
+                                onPress={async () => {
+                                    try {
+                                        const assetService = new AssetService();
+                                        
+                                        // Find LAPTOP-001
+                                        const assetResult = await assetService.searchByAssetCode('LAPTOP-001');
+                                        if (assetResult.success && assetResult.assets && assetResult.assets.length > 0) {
+                                            const asset = assetResult.assets[0];
+                                            
+                                            // Create a test audit using simple audit service
+                                            const result = await simpleAuditService.createAudit(
+                                                asset.asset_id,
+                                                asset.asset_code,
+                                                'Test Location',
+                                                'Test audit created from dashboard'
+                                            );
+                                            
+                                            if (result.success) {
+                                                // Refresh audit statistics
+                                                const auditStatsResult = await simpleAuditService.getAuditStatistics();
+                                                if (auditStatsResult.success && auditStatsResult.data) {
+                                                    setAuditStats({
+                                                        totalAudits: auditStatsResult.data.totalAssets,
+                                                        completedAudits: auditStatsResult.data.auditedAssets,
+                                                        pendingAudits: auditStatsResult.data.pendingAssets,
+                                                        todayAudits: 0,
+                                                        completionRate: auditStatsResult.data.completionRate
+                                                    });
+                                                }
+                                                
+                                                Alert.alert('Success', `Test audit created for ${asset.asset_code}`);
+                                            } else {
+                                                Alert.alert('Error', result.error || 'Failed to create test audit');
+                                            }
+                                        } else {
+                                            Alert.alert('Error', 'LAPTOP-001 not found');
+                                        }
+                                    } catch (error) {
+                                        console.error('Test audit error:', error);
+                                        Alert.alert('Error', 'Failed to create test audit');
+                                    }
+                                }}
+                            />
                         </View>
-                        {assets.slice(0, 3).map((asset) => (
-                            <TouchableOpacity
-                                key={asset.asset_id}
-                                className="bg-white rounded-xl p-4 shadow-sm active:opacity-80 mb-3"
-                                onPress={() => Alert.alert('Asset Details', `Opening asset: ${asset.asset_code}`)}
-                            >
-                                <View className="flex-row items-center justify-between">
-                                    <View className="flex-1">
-                                        <Text className="text-lg font-semibold text-gray-900 mb-1">
-                                            {asset.asset_code}
-                                        </Text>
-                                        <Text className="text-sm text-gray-600 mb-2">{asset.description}</Text>
-                                        <View className="flex-row items-center">
-                                            <View className={`w-2 h-2 rounded-full mr-2`} 
-                                                  style={{ backgroundColor: asset.audit_priority === 'CRITICAL' || asset.audit_priority === 'HIGH' ? '#EF4444' : '#10B981' }} />
-                                            <Text className="text-xs text-gray-500">
-                                                {asset.current_location_name || 'Location not set'}
+                    </View>
+
+
+
+                    {/* Recent Assets */}
+                    {assets.length > 0 && (
+                        <View className="mb-6">
+                            <View className="flex-row items-center justify-between mb-4">
+                                <Text className="text-lg font-semibold text-gray-900">Recent Assets</Text>
+                            </View>
+                            {assets.slice(0, 3).map((asset) => (
+                                <TouchableOpacity
+                                    key={asset.asset_id}
+                                    className="bg-white rounded-xl p-4 shadow-sm active:opacity-80 mb-3"
+                                    onPress={() => Alert.alert('Asset Details', `Opening asset: ${asset.asset_code}`)}
+                                >
+                                    <View className="flex-row items-center justify-between">
+                                        <View className="flex-1">
+                                            <Text className="text-lg font-semibold text-gray-900 mb-1">
+                                                {asset.asset_code}
                                             </Text>
+                                            <Text className="text-sm text-gray-600 mb-2">{asset.description}</Text>
+                                            <View className="flex-row items-center">
+                                                <View className={`w-2 h-2 rounded-full mr-2`} 
+                                                      style={{ backgroundColor: asset.audit_priority === 'CRITICAL' || asset.audit_priority === 'HIGH' ? '#EF4444' : '#10B981' }} />
+                                                <Text className="text-xs text-gray-500">
+                                                    {asset.current_location_name || 'Location not set'}
+                                                </Text>
+                                            </View>
                                         </View>
+                                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                                     </View>
-                                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                                </View>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                )}
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
 
-                {/* Bottom spacing */}
-                <View className="h-6" />
-            </ScrollView>
-        </View>
+                    {/* Bottom spacing */}
+                    <View className="h-6" />
+                </ScrollView>
+            </View>
+        </ProtectedRoute>
     );
-} 
+}

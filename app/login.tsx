@@ -1,16 +1,17 @@
+import { useAuth } from '@/lib/core/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 export default function LoginScreen() {
@@ -18,6 +19,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -27,17 +29,20 @@ export default function LoginScreen() {
 
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      // Check credentials
-      if (email === 'serge@gmail.com' && password === '123456') {
-        // Successful login - navigate directly
-        router.push('/dashboard');
+    try {
+      const result = await login(email, password);
+      
+      if (result.success) {
+        // Successful login - navigate to dashboard
+        router.replace('/dashboard');
       } else {
-        Alert.alert('Error', 'Invalid email or password. Please use:\nEmail: serge@gmail.com\nPassword: 123456');
+        Alert.alert('Error', result.error || 'Login failed');
       }
+    } catch (error) {
+      Alert.alert('Error', 'An unexpected error occurred');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleBack = () => {

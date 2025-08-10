@@ -16,10 +16,22 @@ export class AssetService {
   }
 
   /**
+   * Ensure database is initialized before any operation
+   */
+  private async ensureInitialized(): Promise<void> {
+    const result = await this.databaseHelper.initialize();
+    if (!result.success) {
+      throw new Error(`Database initialization failed: ${result.error}`);
+    }
+  }
+
+  /**
    * Search for assets by barcode
    */
   async searchByBarcode(barcode: string): Promise<AssetSearchResult> {
     try {
+      await this.ensureInitialized();
+      
       const result = await this.databaseHelper.query(
         `SELECT * FROM ${DatabaseConstants.assetTable} WHERE barcode = ?`,
         [barcode]
@@ -45,6 +57,8 @@ export class AssetService {
    */
   async searchByAssetCode(assetCode: string): Promise<AssetSearchResult> {
     try {
+      await this.ensureInitialized();
+      
       const result = await this.databaseHelper.query(
         `SELECT * FROM ${DatabaseConstants.assetTable} WHERE asset_code = ?`,
         [assetCode]
@@ -70,6 +84,8 @@ export class AssetService {
    */
   async searchByTagNumber(tagNumber: string): Promise<AssetSearchResult> {
     try {
+      await this.ensureInitialized();
+      
       const result = await this.databaseHelper.query(
         `SELECT * FROM ${DatabaseConstants.assetTable} WHERE tag_number = ?`,
         [tagNumber]
@@ -95,6 +111,8 @@ export class AssetService {
    */
   async searchBySerialNumber(serialNumber: string): Promise<AssetSearchResult> {
     try {
+      await this.ensureInitialized();
+      
       const result = await this.databaseHelper.query(
         `SELECT * FROM ${DatabaseConstants.assetTable} WHERE serial_number = ?`,
         [serialNumber]
@@ -120,6 +138,8 @@ export class AssetService {
    */
   async searchByDescription(description: string): Promise<AssetSearchResult> {
     try {
+      await this.ensureInitialized();
+      
       const result = await this.databaseHelper.query(
         `SELECT * FROM ${DatabaseConstants.assetTable} WHERE description LIKE ?`,
         [`%${description}%`]
@@ -145,6 +165,8 @@ export class AssetService {
    */
   async getAllAssets(): Promise<AssetSearchResult> {
     try {
+      await this.ensureInitialized();
+      
       const result = await this.databaseHelper.query(
         `SELECT * FROM ${DatabaseConstants.assetTable} ORDER BY asset_code`
       );
@@ -167,8 +189,10 @@ export class AssetService {
   /**
    * Get asset by ID
    */
-  async getAssetById(assetId: number): Promise<AssetSearchResult> {
+  async getAssetById(assetId: string): Promise<AssetSearchResult> {
     try {
+      await this.ensureInitialized();
+      
       const result = await this.databaseHelper.query(
         `SELECT * FROM ${DatabaseConstants.assetTable} WHERE asset_id = ?`,
         [assetId]
@@ -194,6 +218,8 @@ export class AssetService {
    */
   async saveAsset(asset: Asset): Promise<AssetSearchResult> {
     try {
+      await this.ensureInitialized();
+      
       const assetData = asset.toJson();
       
       // Check if asset already exists
@@ -306,6 +332,8 @@ export class AssetService {
    */
   async getAssetsCount(): Promise<{ success: boolean; count?: number; error?: string }> {
     try {
+      await this.ensureInitialized();
+      
       const result = await this.databaseHelper.query(
         `SELECT COUNT(*) as count FROM ${DatabaseConstants.assetTable}`
       );
@@ -318,6 +346,86 @@ export class AssetService {
       return { success: true, count };
     } catch (error) {
       console.error('Error getting assets count:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Get all unique categories
+   */
+  async getCategories(): Promise<{ success: boolean; categories?: string[]; error?: string }> {
+    try {
+      await this.ensureInitialized();
+      
+      const result = await this.databaseHelper.query(
+        `SELECT DISTINCT category_name FROM ${DatabaseConstants.assetTable} ORDER BY category_name`
+      );
+
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+
+      const categories = (result.data || []).map((item: any) => item.category_name);
+      return { success: true, categories };
+    } catch (error) {
+      console.error('Error getting categories:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Get assets by category
+   */
+  async getAssetsByCategory(category: string): Promise<AssetSearchResult> {
+    try {
+      await this.ensureInitialized();
+      
+      const result = await this.databaseHelper.query(
+        `SELECT * FROM ${DatabaseConstants.assetTable} WHERE category_name = ? ORDER BY asset_code`,
+        [category]
+      );
+
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+
+      const assets = (result.data || []).map((assetData: any) => Asset.fromJson(assetData));
+      return { success: true, assets };
+    } catch (error) {
+      console.error('Error getting assets by category:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Get assets count by category
+   */
+  async getAssetsCountByCategory(category: string): Promise<{ success: boolean; count?: number; error?: string }> {
+    try {
+      await this.ensureInitialized();
+      
+      const result = await this.databaseHelper.query(
+        `SELECT COUNT(*) as count FROM ${DatabaseConstants.assetTable} WHERE category_name = ?`,
+        [category]
+      );
+
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+
+      const count = result.data?.[0]?.count || 0;
+      return { success: true, count };
+    } catch (error) {
+      console.error('Error getting assets count by category:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 

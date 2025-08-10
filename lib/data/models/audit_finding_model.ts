@@ -218,7 +218,7 @@ export class AuditFinding implements AuditFindingModel {
   }
 
   get hasSyncErrors(): boolean {
-    return this.sync_status === SyncStatus.ERROR || (this.sync_errors && this.sync_errors.length > 0);
+    return this.sync_status === SyncStatus.ERROR || Boolean(this.sync_errors && this.sync_errors.length > 0);
   }
 
   addPhotoFile(filePath: string): AuditFinding {

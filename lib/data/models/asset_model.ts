@@ -1,9 +1,9 @@
 import { AuditPriority } from '../../core/constants/database_constants';
 
 export interface AssetModel {
-  id?: number;
-  audit_session_id: number;
-  asset_id: number;
+  id?: string; // Changed to UUID string
+  audit_session_id: string; // Changed to UUID string
+  asset_id: string; // Changed to UUID string
   asset_code: string;
   barcode?: string;
   tag_number?: string;
@@ -13,9 +13,9 @@ export interface AssetModel {
   brand?: string;
   model?: string;
   serial_number?: string;
-  current_location_id?: number;
+  current_location_id?: string; // Changed to UUID string
   current_location_name?: string;
-  expected_location_id?: number;
+  expected_location_id?: string; // Changed to UUID string
   expected_location_name?: string;
   current_department_name?: string;
   current_custodian_name?: string;
@@ -25,7 +25,7 @@ export interface AssetModel {
   asset_cost?: number;
   net_book_value?: number;
   purchase_date?: string;
-  assigned_team_id?: number;
+  assigned_team_id?: string; // Changed to UUID string
   audit_priority?: AuditPriority;
   data_version?: number;
   last_sync_date?: string;
@@ -34,9 +34,9 @@ export interface AssetModel {
 }
 
 export class Asset implements AssetModel {
-  id?: number;
-  audit_session_id: number;
-  asset_id: number;
+  id?: string;
+  audit_session_id: string;
+  asset_id: string;
   asset_code: string;
   barcode?: string;
   tag_number?: string;
@@ -46,9 +46,9 @@ export class Asset implements AssetModel {
   brand?: string;
   model?: string;
   serial_number?: string;
-  current_location_id?: number;
+  current_location_id?: string;
   current_location_name?: string;
-  expected_location_id?: number;
+  expected_location_id?: string;
   expected_location_name?: string;
   current_department_name?: string;
   current_custodian_name?: string;
@@ -58,7 +58,7 @@ export class Asset implements AssetModel {
   asset_cost?: number;
   net_book_value?: number;
   purchase_date?: string;
-  assigned_team_id?: number;
+  assigned_team_id?: string;
   audit_priority: AuditPriority;
   data_version: number;
   last_sync_date?: string;
