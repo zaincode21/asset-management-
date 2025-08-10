@@ -12,11 +12,13 @@ import {
     View
 } from 'react-native';
 import { ProtectedRoute } from '../lib/core/components/ProtectedRoute';
+import { useAuth } from '../lib/core/contexts/AuthContext';
 import { AssetService } from '../lib/core/services/asset_service';
 import { SimpleAuditService } from '../lib/core/services/simple_audit_service';
 import { Asset } from '../lib/data/models/asset_model';
 
 export default function AllAssetsScreen() {
+    const { user } = useAuth();
     const [assets, setAssets] = useState<Asset[]>([]);
     const [filteredAssets, setFilteredAssets] = useState<Asset[]>([]);
     const [loading, setLoading] = useState(true);
@@ -25,6 +27,7 @@ export default function AllAssetsScreen() {
     const [assetService] = useState(new AssetService());
     const [simpleAuditService] = useState(new SimpleAuditService());
     const [auditedAssetIds, setAuditedAssetIds] = useState<Set<string>>(new Set());
+    const [auditedByMap, setAuditedByMap] = useState<{ [assetId: string]: string }>({});
 
     useEffect(() => {
         loadAllAssets();
@@ -51,25 +54,22 @@ export default function AllAssetsScreen() {
 
     const checkAuditStatusForAssets = async (assetList: Asset[]) => {
         try {
-            console.log('Checking audit status for', assetList.length, 'assets');
             const auditedIds = new Set<string>();
-            
+            const auditedBy: { [assetId: string]: string } = {};
             for (const asset of assetList) {
-                console.log('Checking asset:', asset.asset_code, 'ID:', asset.asset_id);
-                const result = await simpleAuditService.isAssetAudited(asset.asset_id);
-                console.log('Audit result for', asset.asset_code, ':', result);
-                
-                if (result.success && result.data && result.data.isAudited) {
-                    auditedIds.add(asset.asset_id);
-                    console.log('Asset', asset.asset_code, 'is audited');
-                } else {
-                    console.log('Asset', asset.asset_code, 'is NOT audited');
+                // Get all audit findings for this asset
+                const findingsResult = await simpleAuditService.getAllAuditFindings();
+                if (findingsResult.success && findingsResult.data) {
+                    const findings = findingsResult.data.filter((f: any) => f.asset_id === asset.asset_id);
+                    if (findings.length > 0) {
+                        auditedIds.add(asset.asset_id);
+                        // Assume only one audit per asset
+                        auditedBy[asset.asset_id] = findings[0].audited_by;
+                    }
                 }
             }
-            
-            console.log('Total audited assets found:', auditedIds.size);
-            console.log('Audited asset IDs:', Array.from(auditedIds));
             setAuditedAssetIds(auditedIds);
+            setAuditedByMap(auditedBy);
         } catch (error) {
             console.error('Error checking audit status:', error);
         }
@@ -107,16 +107,23 @@ export default function AllAssetsScreen() {
     };
 
     const handleAssetPress = (asset: Asset) => {
-        // Check if asset is already audited
         if (auditedAssetIds.has(asset.asset_id)) {
-            Alert.alert(
-                'Asset Already Audited',
-                `Asset "${asset.asset_code}" has already been audited. Each asset can only be audited once.`,
-                [{ text: 'OK' }]
-            );
+            const auditedBy = auditedByMap[asset.asset_id];
+            if (user && auditedBy && auditedBy !== user.id) {
+                Alert.alert(
+                    'Asset Audited by Another User',
+                    `Asset "${asset.asset_code}" has already been audited by another user. You cannot audit it again.`,
+                    [{ text: 'OK' }]
+                );
+            } else {
+                Alert.alert(
+                    'Asset Already Audited',
+                    `Asset "${asset.asset_code}" has already been audited. Each asset can only be audited once.`,
+                    [{ text: 'OK' }]
+                );
+            }
             return;
         }
-        
         router.push(`/start-audit?assetCode=${encodeURIComponent(asset.asset_code)}&assetName=${encodeURIComponent(asset.description || '')}`);
     };
 
@@ -127,6 +134,8 @@ export default function AllAssetsScreen() {
     const renderAssetItem = ({ item }: { item: Asset }) => {
         const isAudited = auditedAssetIds.has(item.asset_id);
         
+        const auditedBy = auditedByMap[item.asset_id];
+        const isAuditedByOther = user && auditedBy && auditedBy !== user.id;
         return (
             <TouchableOpacity
                 className={`rounded-xl p-4 shadow-sm mb-3 ${
@@ -148,11 +157,10 @@ export default function AllAssetsScreen() {
                         {isAudited && (
                             <View className="px-2 py-1 rounded-full bg-red-100">
                                 <Text className="text-xs font-medium text-red-800">
-                                    Audited
+                                    {isAuditedByOther ? 'Audited by Other' : 'Audited'}
                                 </Text>
                             </View>
                         )}
-                        
                         {/* Asset Status Badge */}
                         <View className={`px-2 py-1 rounded-full ${
                             item.current_status_name === 'Active' ? 'bg-green-100' : 'bg-red-100'
@@ -165,13 +173,11 @@ export default function AllAssetsScreen() {
                         </View>
                     </View>
                 </View>
-                
                 <Text className={`mb-2 ${
                     isAudited ? 'text-gray-500' : 'text-gray-700'
                 }`}>
                     {item.description}
                 </Text>
-                
                 <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center">
                         <Ionicons 
@@ -191,12 +197,13 @@ export default function AllAssetsScreen() {
                         {item.category_name}
                     </Text>
                 </View>
-                
                 {/* Already Audited Warning */}
                 {isAudited && (
                     <View className="mt-3 p-2 bg-red-50 border border-red-200 rounded-lg">
                         <Text className="text-red-700 text-xs text-center">
-                            🚫 This asset has already been audited and cannot be selected again
+                            {isAuditedByOther
+                                ? '🚫 This asset has already been audited by another user and cannot be selected again'
+                                : '🚫 This asset has already been audited and cannot be selected again'}
                         </Text>
                     </View>
                 )}

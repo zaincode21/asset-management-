@@ -111,7 +111,7 @@ export class SimpleAuditService {
   /**
    * Create a simple audit for one asset
    */
-  async createAudit(assetId: string, assetCode: string, location: string, notes: string = ''): Promise<SimpleAuditResult> {
+  async createAudit(assetId: string, assetCode: string, location: string, notes: string = '', auditedBy: string = 'Current User'): Promise<SimpleAuditResult> {
     try {
       // Check if asset is already audited
       const auditCheck = await this.isAssetAudited(assetId);
@@ -124,7 +124,7 @@ export class SimpleAuditService {
         offline_record_id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         audit_session_id: generateUUID(), // Generate new UUID for session
         asset_id: assetId,
-        audited_by: 'Current User',
+        audited_by: auditedBy,
         audited_date: new Date().toISOString(),
         audit_location: location,
         asset_found: true,

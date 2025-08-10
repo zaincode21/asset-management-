@@ -12,7 +12,6 @@ import {
     View
 } from 'react-native';
 import { ProtectedRoute } from '../lib/core/components/ProtectedRoute';
-import { DatabaseConstants } from '../lib/core/constants/database_constants';
 import { DatabaseHelper } from '../lib/core/database/database_helper';
 import { AssetService } from '../lib/core/services/asset_service';
 import { AuditService } from '../lib/core/services/audit_service';
@@ -354,137 +353,7 @@ export default function DashboardScreen() {
                                 color="#6366F1"
                                 onPress={handleViewAllAssets}
                             />
-                            <QuickActionCard
-                                title="Debug Audits"
-                                subtitle="Show current audit findings"
-                                icon="bug-outline"
-                                color="#EF4444"
-                                onPress={async () => {
-                                    try {
-                                        const dbHelper = DatabaseHelper.getInstance();
-                                        const auditFindingsResult = await dbHelper.query(
-                                            `SELECT * FROM ${DatabaseConstants.auditFindingTable}`
-                                        );
-                                        const assetsResult = await dbHelper.query(
-                                            `SELECT * FROM ${DatabaseConstants.assetTable}`
-                                        );
-                                        
-                                        if (auditFindingsResult.success && assetsResult.success) {
-                                            const auditFindings = auditFindingsResult.data || [];
-                                            const assets = assetsResult.data || [];
-                                            
-                                            console.log('=== DEBUG AUDIT FINDINGS ===');
-                                            console.log('Total Assets:', assets.length);
-                                            console.log('Total Audit Findings:', auditFindings.length);
-                                            
-                                            if (auditFindings.length > 0) {
-                                                console.log('Audit Findings:', auditFindings);
-                                                console.log('Asset IDs in audits:', auditFindings.map((a: any) => a.asset_id));
-                                                console.log('Asset Codes in audits:', auditFindings.map((a: any) => a.physical_asset_code));
-                                                
-                                                // Check for duplicates
-                                                const assetIds = auditFindings.map((a: any) => a.asset_id).filter((id: any) => id != null);
-                                                const uniqueAssetIds = [...new Set(assetIds)];
-                                                console.log('Unique asset IDs:', uniqueAssetIds.length, 'vs Total audit findings:', auditFindings.length);
-                                                
-                                                if (uniqueAssetIds.length !== auditFindings.length) {
-                                                    console.log('❌ DUPLICATES FOUND!');
-                                                } else {
-                                                    console.log('✅ No duplicates found');
-                                                }
-                                            }
-                                            
-                                            Alert.alert(
-                                                'Debug Info',
-                                                `Assets: ${assets.length}\nAudit Findings: ${auditFindings.length}\nCheck console for details.`
-                                            );
-                                        }
-                                    } catch (error) {
-                                        console.error('Debug error:', error);
-                                        Alert.alert('Error', 'Failed to get debug info');
-                                    }
-                                }}
-                            />
-                            <QuickActionCard
-                                title="Clear Audits"
-                                subtitle="Remove all audit findings"
-                                icon="trash-outline"
-                                color="#EF4444"
-                                onPress={async () => {
-                                    try {
-                                        const result = await simpleAuditService.clearAllAudits();
-                                        
-                                        if (result.success) {
-                                            // Refresh audit statistics
-                                            const auditStatsResult = await simpleAuditService.getAuditStatistics();
-                                            if (auditStatsResult.success && auditStatsResult.data) {
-                                                setAuditStats({
-                                                    totalAudits: auditStatsResult.data.totalAssets,
-                                                    completedAudits: auditStatsResult.data.auditedAssets,
-                                                    pendingAudits: auditStatsResult.data.pendingAssets,
-                                                    todayAudits: 0,
-                                                    completionRate: auditStatsResult.data.completionRate
-                                                });
-                                            }
-                                            
-                                            Alert.alert('Success', 'All audit findings cleared!');
-                                        } else {
-                                            Alert.alert('Error', result.error || 'Failed to clear audit findings');
-                                        }
-                                    } catch (error) {
-                                        console.error('Clear audits error:', error);
-                                        Alert.alert('Error', 'Failed to clear audit findings');
-                                    }
-                                }}
-                            />
-                            <QuickActionCard
-                                title="Test Single Audit"
-                                subtitle="Create a test audit for LAPTOP-001"
-                                icon="flask-outline"
-                                color="#10B981"
-                                onPress={async () => {
-                                    try {
-                                        const assetService = new AssetService();
-                                        
-                                        // Find LAPTOP-001
-                                        const assetResult = await assetService.searchByAssetCode('LAPTOP-001');
-                                        if (assetResult.success && assetResult.assets && assetResult.assets.length > 0) {
-                                            const asset = assetResult.assets[0];
-                                            
-                                            // Create a test audit using simple audit service
-                                            const result = await simpleAuditService.createAudit(
-                                                asset.asset_id,
-                                                asset.asset_code,
-                                                'Test Location',
-                                                'Test audit created from dashboard'
-                                            );
-                                            
-                                            if (result.success) {
-                                                // Refresh audit statistics
-                                                const auditStatsResult = await simpleAuditService.getAuditStatistics();
-                                                if (auditStatsResult.success && auditStatsResult.data) {
-                                                    setAuditStats({
-                                                        totalAudits: auditStatsResult.data.totalAssets,
-                                                        completedAudits: auditStatsResult.data.auditedAssets,
-                                                        pendingAudits: auditStatsResult.data.pendingAssets,
-                                                        todayAudits: 0,
-                                                        completionRate: auditStatsResult.data.completionRate
-                                                    });
-                                                }
-                                                
-                                                Alert.alert('Success', `Test audit created for ${asset.asset_code}`);
-                                            } else {
-                                                Alert.alert('Error', result.error || 'Failed to create test audit');
-                                            }
-                                        } else {
-                                            Alert.alert('Error', 'LAPTOP-001 not found');
-                                        }
-                                    } catch (error) {
-                                        console.error('Test audit error:', error);
-                                        Alert.alert('Error', 'Failed to create test audit');
-                                    }
-                                }}
-                            />
+                            // ...existing code...
                         </View>
                     </View>
 
